@@ -2684,7 +2684,7 @@ function showRedInvoiceDetail() {
             <div class="history-item" onclick="loadHistory('供应商合规分析')"><div class="h-dot" style="background:#722ed1;"></div><span>供应商合规分析</span></div>
         </div>
     </div>
-    <div class="center-content" id="centerContent">
+    <div class="center-content expanded" id="centerContent">
     <div id="view-dashboard" class="module-view">
         <div class="dash-banner">
             <div class="dash-banner-left">
@@ -2790,8 +2790,8 @@ function showRedInvoiceDetail() {
         
     </div>
     </div>
-    <div class="right-panel" id="rightPanel">
-        <div class="chat-header" id="chatHeaderText" style="position:relative;">AI 财务助手<div class="panel-toggle" id="panelToggle" onclick="toggleRightPanel()">\u25c0</div></div>
+    <div class="right-panel collapsed" id="rightPanel">
+        <div class="chat-header" id="chatHeaderText" style="position:relative;">AI 财务助手<div class="panel-toggle" id="panelToggle" onclick="toggleRightPanel()">&#9654;</div></div>
         <div class="chat-messages" id="chatMessages">
             <div class="chat-msg ai">
                 <div class="cm-avatar">AI</div>
@@ -2830,11 +2830,39 @@ function sendChat(text) {
     }, 300);
     msgs.scrollTop = msgs.scrollHeight;
 }
-function loadHistory(name) { sendChat('加载历史记录：' + name); }
+function loadHistory(name) {
+    var panel = document.getElementById('rightPanel');
+    if (panel && panel.classList.contains('collapsed')) { toggleRightPanel(); }
+    var items = document.querySelectorAll('.history-item');
+    items.forEach(function(it) { it.style.background = ''; it.style.borderRadius = ''; });
+    items.forEach(function(it) { if (it.textContent.trim() === name) { it.style.background = '#f0f5ff'; it.style.borderRadius = '4px'; } });
+    var header = document.getElementById('chatHeaderText');
+    if (header) header.textContent = name;
+    var msgs = document.getElementById('chatMessages');
+    if (msgs) {
+        var replies = {
+            '进项管理分析': '好的，进项管理分析报告已生成。当前认证率41.4%，未认证发票1,937,407张，主要集中在近三个月。建议优先处理超期未认证发票。',
+            '风险扫描报告': '风险扫描已完成，发现45家异常公司，其中高风险3家，预估损失约640万。建议立即处置高风险项目。',
+            '申报预测复核': '申报预测复核结果：本期应纳增值税约128万元，企业所得税约360万元。与上期相比，增值税下降8.3%，主要原因为进项税增加。',
+            '销项数据核对': '销项数据核对已完成，当期销售总额约2.1亿元，销项税约2730万元。核对差异率为0.3%，在合理范围内。',
+            '供应商合规分析': '供应商合规分析结果：共评估20家主要供应商，其中2家风险偏高（雪峰、合炘），建议加强监督。',
+        };
+        var reply = replies[name] || '已加载"' + name + '"的话题，请输入你的问题。';
+        msgs.innerHTML = '<div class="chat-msg ai"><div class="cm-avatar">AI</div><div class="cm-content"><div class="cm-text">' + reply + '</div></div></div>' +
+            '<div class="chat-msg user"><div class="cm-avatar you">您</div><div class="cm-content" style="background:#1890ff;color:#fff;border-radius:12px 4px 12px 12px;"><div class="cm-text">' + name + '</div></div></div>';
+    }
+    var input = document.getElementById('chatInput');
+    if (input) { input.value = ''; input.placeholder = '回复"' + name + '"的话题...'; }
+}
 renderDashboard();
 
 function switchModule(module, navEl) {
     document.querySelectorAll('.module-view').forEach(function(v) { v.style.display = 'none'; });
+    setTimeout(function() { updateWelcomeMessage(module); }, 100);
+    if (module === '驾驶舱' || module === 'dashboard') {
+        var rp = document.getElementById('rightPanel');
+        if (rp && !rp.classList.contains('collapsed')) { toggleRightPanel(); }
+    }
     var viewId = module === 'dashboard' ? 'view-dashboard' : 'view-' + module;
     var view = document.getElementById(viewId);
     if (view) view.style.display = '';
@@ -2850,10 +2878,10 @@ function switchModule(module, navEl) {
 // ===== P0: Toggle Right Panel =====
 function toggleRightPanel() {
     var panel = document.getElementById('rightPanel');
-    var btn = document.getElementById('panelToggle');
+    var btn = document.querySelector('#panelToggle');
     if (!panel) return;
     panel.classList.toggle('collapsed');
-    btn.innerHTML = panel.classList.contains('collapsed') ? '\u25b6' : '\u25c0';
+    if (btn) btn.innerHTML = panel.classList.contains('collapsed') ? '▶' : '◀';
     var center = document.querySelector('.center-content');
     if (center) center.classList.toggle('expanded');
 }
@@ -2916,7 +2944,7 @@ function updateWelcomeMessage(moduleName) {
         '\u9500\u9879\u7ba1\u7406': '\u4f60\u597d\uff01\u5f53\u524d\u9500\u9879\u7ba1\u7406\u6a21\u5757\uff0c\u53ef\u4ee5\u5e2e\u4f60\u5206\u6790\u9500\u552e\u8d8b\u52bf\u3001\u5546\u54c1Top10\u3001\u9500\u9879\u7a0e\u8d1f\u5206\u6790\u7b49\u3002',
         '\u98ce\u9669\u76d1\u63a7': '\u4f60\u597d\uff01\u5f53\u524d\u98ce\u9669\u76d1\u63a7\u6a21\u5757\uff0c\u53ef\u4ee5\u5e2e\u4f60\u626b\u63cf\u5f02\u5e38\u516c\u53f8\u3001\u67e5\u770b\u98ce\u9669TOP5\u3001\u5206\u6790\u635f\u5931\u660e\u7ec6\u3002',
     };
-    var msg = welcomes[moduleName] || '\u4f60\u597d\uff01\u6211\u662f AI CFO \u667a\u80fd\u7a0e\u52a1\u52a9\u624b\uff0c\u6709\u4ec0\u4e48\u53ef\u4ee5\u5e2e\u4f60\uff1f';
+    var msg = welcomes[moduleName] || welcomes['\u9a7e\u9a76\u8231'] || '\u4f60\u597d\uff01\u6211\u662f AI CFO \u667a\u80fd\u7a0e\u52a1\u52a9\u624b\uff0c\u6709\u4ec0\u4e48\u53ef\u4ee5\u5e2e\u4f60\uff1f';
     var cmText = first.querySelector('.cm-text');
     if (cmText) cmText.textContent = msg;
 }
