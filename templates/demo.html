@@ -1,0 +1,2551 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI CFO · 企业财税AI操作系统</title>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+<script>
+// ===== Invoice Management Module =====
+const INVOICE_OVERVIEW = {
+    totalCount: 3304207,
+    certifiedCount: 1366800,
+    uncertifiedCount: 1937407,
+    certRate: 41.4,
+    monthlyInputTax: 1280000,
+    expiredLossTotal: 3150000,
+    lastMonthLoss: 860000,
+    deadlineDays: 12,
+    dailyRateNeeded: 87000,
+    avgCertRate: 71.2
+};
+
+const REGION_INVOICE_DATA = [
+    { id: 'huadong', name: '华东区域', companyCount: 180, totalCount: 982000, certifiedCount: 903440, certRate: 92, abnormalCount: 3, trend: 'up', trendLabel: '↑' },
+    { id: 'huanan', name: '华南区域', companyCount: 98, totalCount: 534000, certifiedCount: 357780, certRate: 67, abnormalCount: 12, trend: 'flat', trendLabel: '→' },
+    { id: 'huabei', name: '华北区域', companyCount: 112, totalCount: 612000, certifiedCount: 520200, certRate: 85, abnormalCount: 2, trend: 'up', trendLabel: '↑' },
+    { id: 'huazhong', name: '华中区域', companyCount: 156, totalCount: 851000, certifiedCount: 382950, certRate: 45, abnormalCount: 23, trend: 'down', trendLabel: '↓↓' },
+    { id: 'touzi', name: '投资公司', companyCount: 54, totalCount: 295000, certifiedCount: 289100, certRate: 98, abnormalCount: 0, trend: 'flat', trendLabel: '→' }
+];
+
+const SUPPLIER_INVOICE_DATA = [
+    { name: '雪峰致远供应链', taxId: '913...', totalCount: 2184, abnormalCount: 175, abnormalRate: 8.0, riskScore: 42, riskLevel: 'D' },
+    { name: 'XX建材', taxId: '913...', totalCount: 1230, abnormalCount: 98, abnormalRate: 8.0, riskScore: 40, riskLevel: 'D' },
+    { name: '合炘供应链', taxId: '913...', totalCount: 1789, abnormalCount: 143, abnormalRate: 8.0, riskScore: 45, riskLevel: 'C' },
+    { name: '北京三快在线（美团）', taxId: '913...', totalCount: 15522, abnormalCount: 310, abnormalRate: 2.0, riskScore: 72, riskLevel: 'B' },
+    { name: '汉堡王投资公司', taxId: '913...', totalCount: 83854, abnormalCount: 590, abnormalRate: 0.7, riskScore: 95, riskLevel: 'A' },
+    { name: '上海外服集团', taxId: '913...', totalCount: 692, abnormalCount: 2, abnormalRate: 0.3, riskScore: 95, riskLevel: 'A' }
+];
+
+const URGENCY_RANKING = {
+    deadline: { date: '2026-07-15', daysLeft: 12, unifiedMessage: '所有未认证发票共享7月15日申报截止日' },
+    priority: [
+        { id: 'urg_001', supplierName: '苏宁', totalAmount: 456000, invoiceCount: 23, regionName: '华中区域', companyName: '华中·万达店', supplierRisk: 8.5, urgencyScore: 92, oldestDays: 95, estimatedLoss: 456000, actions: ['certify', 'detail'] },
+        { id: 'urg_002', supplierName: '万达', totalAmount: 223000, invoiceCount: 15, regionName: '华中区域', companyName: '华中·金茂店', supplierRisk: 6.0, urgencyScore: 85, oldestDays: 62, estimatedLoss: 223000, actions: ['certify', 'detail'] },
+        { id: 'urg_003', supplierName: '雪峰致远', totalAmount: 178000, invoiceCount: 8, regionName: '华南区域', companyName: '华南·广州分公司', supplierRisk: 8.0, urgencyScore: 78, oldestDays: 88, estimatedLoss: 178000, actions: ['certify', 'detail'] },
+    ],
+    watch: [
+        { id: 'urg_004', supplierName: '美团', totalAmount: 89000, invoiceCount: 8, regionName: '华南区域', companyName: '华南·深圳分公司', supplierRisk: 4.0, urgencyScore: 55, oldestDays: 30, estimatedLoss: 89000, actions: ['certify', 'detail'] },
+        { id: 'urg_005', supplierName: '饿了么', totalAmount: 76000, invoiceCount: 6, regionName: '华南区域', companyName: '华南·广州分公司', supplierRisk: 3.5, urgencyScore: 48, oldestDays: 25, estimatedLoss: 76000, actions: ['certify', 'detail'] },
+    ],
+    normal: { uncertifiedTotal: 1937407, message: '其余发票正常安排，暂无需特别关注' }
+};
+
+// 今日待办中心数据
+const TODAY_TASKS = {
+    emergency: [
+        { id: 'task_001', type: 'expiring', title: '苏宁发票 ¥456,000，23张未认证', daysLeft: 12, amount: 456000, region: '华中区域', company: '华中·万达店', supplier: '苏宁', actions: ['certify_one_click', 'view_detail', 'send_reminder'] },
+        { id: 'task_002', type: 'low_rate', title: '华中区认证率仅45%，低于集团平均线26个百分点', region: '华中区域', certRate: 45, avgRate: 71.2, abnormalCount: 23, actions: ['send_urge', 'drill_down'] },
+    ],
+    todo: [
+        { id: 'task_003', type: 'supplier', title: '处理雪峰致远异常发票', desc: '异常率8%，风险分42，D级', actions: ['view_detail', 'send_rectification'] },
+        { id: 'task_004', type: 'review', title: '复核华南区上月已过期损失报告', desc: '上月已过期损失 ¥86万', actions: ['view_detail'] },
+        { id: 'task_005', type: 'export', title: '导出本月补认证清单', desc: '涉及3家供应商，共46张发票', actions: ['export'] },
+    ],
+    completed: []
+};
+
+// 异常公司清单
+const ABNORMAL_COMPANIES = {
+    highRisk: [
+        { id: 'comp_hz', name: '华中区域', level: 'region', certRate: 45, abnormalCount: 23, companyCount: 156, certRank: 5, parentRegion: '', actions: ['drill_down', 'send_urge'] },
+    ],
+    warning: [
+        { id: 'comp_hn', name: '华南区域', level: 'region', certRate: 67, abnormalCount: 12, companyCount: 98, certRank: 4, parentRegion: '', actions: ['drill_down', 'send_urge'] },
+        { id: 'comp_hz_d1', name: '华中·第一分公司', level: 'company', certRate: 32, abnormalCount: 8, companyCount: 1, certRank: 6, parentRegion: '华中区域', actions: ['drill_down', 'send_reminder'] },
+        { id: 'comp_hz_wd', name: '华中·万达店', level: 'company', certRate: 38, abnormalCount: 5, companyCount: 1, certRank: 7, parentRegion: '华中区域', actions: ['drill_down', 'send_reminder'] },
+    ],
+    normal: { totalCount: 595, avgCertRate: 86 }
+};
+
+// ===== Sales Invoice Module v2 Data =====
+const SALES_OVERVIEW = {
+    totalAmount: 2360000000,
+    yoyGrowth: '+8.2%',
+    internalReconRate: 72.5,
+    internalReconTotal: 36,
+    internalReconDone: 26,
+    internalReconDiff: 3,
+    redInvoiceRate: 3.2,
+    industryBenchmark: 3.0,
+    platformReconRate: 38,
+};
+
+const SALES_TODAY_TASKS = {
+    internalDiff: [
+        { fromCompany: '华中区域', toCompany: '华东区域', sentAmount: 2300000, receivedAmount: 2100000, diff: -200000, diffInvoiceCount: 3, actions: ['gen_report', 'send_urge'] },
+        { fromCompany: '华南区域', toCompany: '投资公司', sentAmount: 890000, receivedAmount: 850000, diff: -40000, diffInvoiceCount: 2, actions: ['gen_report', 'send_urge'] },
+        { fromCompany: '华北区域', toCompany: '华中区域', sentAmount: 1560000, receivedAmount: 1580000, diff: 20000, diffInvoiceCount: 1, actions: ['gen_report', 'send_urge'] },
+    ],
+    platformDiff: [
+        { platform: '\u7f8e\u56e2', platformAmount: 1200000, systemAmount: 950000, diff: 250000, storeCount: 15, actions: ['auto_recon', 'view_detail'] },
+        { platform: '\u997f\u4e86\u4e48', platformAmount: 780000, systemAmount: 720000, diff: 60000, storeCount: 8, actions: ['auto_recon', 'view_detail'] },
+    ],
+    completed: [],
+};
+
+const FRAUD_RISK_DATA = {
+    scanDate: '2026-07-19',
+    totalCompanies: 600,
+    abnormalCount: 7,
+    highRisk: [
+        {
+            companyName: '\u534e\u4e2d\u00b7\u7b2c1\u5206\u516c\u53f8', riskScore: 92,
+            features: [
+                { name: '\u5f00\u7968\u91cf\u5f02\u5e38\u6fc0\u589e', detail: '\u73af\u6bd4 +340%\uff08\u4e0a\u670823\u5f20\u2192\u672c\u6708101\u5f20\uff09', isAlert: true },
+                { name: '\u91d1\u989d\u907f\u7ebf', detail: '60\u5f20\u53d1\u7968\u91d1\u989d\u96c6\u4e2d\u5728\u00a59,900-\u00a59,999\u533a\u95f4', isAlert: true },
+                { name: '\u975e\u8425\u4e1a\u65f6\u95f4\u5f00\u7968', detail: '\u51cc\u66680-5\u70b9\u5f00\u796812\u5f20', isAlert: true },
+                { name: '\u540c\u4e00\u8d2d\u4e70\u65b9\u591a\u5e97\u5f00\u7968', detail: '\u201cXX\u54a8\u8be2\u201d\u5f00\u796847\u5f20\u00a542.3\u4e07', isAlert: true },
+            ],
+            actions: ['view_detail', 'gen_audit'],
+        },
+        {
+            companyName: '\u534e\u5357\u00b7\u6df1\u5733\u5206\u516c\u53f8', riskScore: 85,
+            features: [
+                { name: '\u54c1\u540d\u504f\u79bb', detail: '38\u5f20\u5f00\u7968\u54c1\u540d\u4e3a\u201c\u529e\u516c\u7528\u54c1\u201d\u2014\u2014\u9910\u996e\u5e97\u5f00\u529e\u516c\u7528\u54c1\u7968', isAlert: true },
+                { name: '\u91d1\u989d\u907f\u7ebf', detail: '\u5355\u5f20\u91d1\u989d\u00a59,900-\u00a59,999\u517132\u5f20', isAlert: true },
+            ],
+            actions: ['view_detail', 'gen_audit'],
+        },
+    ],
+    warning: [
+        {
+            companyName: '\u534e\u5317\u00b7\u5317\u4eac\u7ad9\u5e97', riskScore: 68,
+            features: [
+                { name: '\u540c\u4e00\u8d2d\u4e70\u65b9\u8fde\u7eed\u5f00\u7968', detail: '\u540c\u4e00\u8d2d\u4e70\u65b9\u8fde\u7eed3\u6708\u5f00\u7968>\u00a510\u4e07', isAlert: true },
+            ],
+            actions: ['view_detail', 'send_reminder'],
+        },
+        {
+            companyName: '\u534e\u4e1c\u00b7\u5357\u4eac\u5e97', riskScore: 65,
+            features: [
+                { name: '\u975e\u8425\u4e1a\u65f6\u95f4\u5f00\u7968', detail: '\u51cc\u6668\u5f00\u7968\u5360\u6bd415%', isAlert: true },
+            ],
+            actions: ['view_detail', 'send_reminder'],
+        },
+    ],
+};
+
+const RED_INVOICE_DATA = {
+    monthlyRate: 3.2, industryBenchmark: 3.0, isAboveBenchmark: true,
+    topAbnormal: [
+        { companyName: '\u534e\u4e2d\u00b7\u7b2c1\u5206\u516c\u53f8', count: 23, rate: 8.7, operationError: 15, normalReturn: 8, actions: ['view_detail', 'send_training'] },
+        { companyName: '\u534e\u5357\u00b7\u6df1\u5733\u5206\u516c\u53f8', count: 12, rate: 5.2, operationError: 8, normalReturn: 4, actions: ['view_detail', 'send_training'] },
+        { companyName: '\u534e\u5317\u00b7\u5317\u4eac\u7ad9\u5e97', count: 8, rate: 3.5, operationError: 3, normalReturn: 5, actions: ['view_detail'] },
+        { companyName: '\u534e\u4e1c\u00b7\u4e0a\u6d77\u5e97', count: 6, rate: 3.1, operationError: 2, normalReturn: 4, actions: ['view_detail'] },
+        { companyName: '\u534e\u5357\u00b7\u5e7f\u5dde\u5206\u516c\u53f8', count: 5, rate: 2.8, operationError: 1, normalReturn: 4, actions: ['view_detail'] },
+    ],
+    monthlyTrend: [
+        { month: '2026-03', rate: 2.8 }, { month: '2026-04', rate: 3.1 },
+        { month: '2026-05', rate: 2.9 }, { month: '2026-06', rate: 3.2 },
+        { month: '2026-07', rate: 3.2 },
+    ],
+};
+
+const INTERNAL_TRANSACTIONS = {
+    totalLinks: 36, reconRate: 72.5,
+    links: [
+        { fromCompany: '\u534e\u4e1c\u533a\u57df', toCompany: '\u534e\u4e2d\u533a\u57df', sentAmount: 2300000, status: '\u274c' },
+        { fromCompany: '\u534e\u5357\u533a\u57df', toCompany: '\u6295\u8d44\u516c\u53f8', sentAmount: 890000, status: '\u2705' },
+        { fromCompany: '\u534e\u5317\u533a\u57df', toCompany: '\u534e\u4e2d\u533a\u57df', sentAmount: 1560000, status: '\u274c' },
+        { fromCompany: '\u534e\u4e2d\u533a\u57df', toCompany: '\u534e\u4e1c\u533a\u57df', sentAmount: 450000, status: '\u2705' },
+        { fromCompany: '\u6295\u8d44\u516c\u53f8', toCompany: '\u534e\u5357\u533a\u57df', sentAmount: 670000, status: '\u2705' },
+    ],
+    diffs: [
+        { fromCompany: '\u534e\u4e2d\u533a\u57df', toCompany: '\u534e\u4e1c\u533a\u57df', sentAmount: 2300000, receivedAmount: 2100000, diff: -200000, diffSource: '3\u5f20\u53d1\u7968\u5df2\u5f00\u672a\u6536', actions: ['view_detail', 'send_urge'] },
+        { fromCompany: '\u534e\u5317\u533a\u57df', toCompany: '\u534e\u4e2d\u533a\u57df', sentAmount: 1560000, receivedAmount: 1580000, diff: 20000, diffSource: '1\u5f20\u53d1\u7968\u91d1\u989d\u6709\u5dee\u5f02', actions: ['view_detail', 'send_urge'] },
+    ],
+};
+
+const PLATFORM_RECON_DATA = [
+    { platform: '\u7f8e\u56e2', platformAmount: 1200000, systemAmount: 950000, diff: 250000, storeCount: 15 },
+    { platform: '\u997f\u4e86\u4e48', platformAmount: 780000, systemAmount: 720000, diff: 60000, storeCount: 8 },
+];
+
+const COMPLIANCE_DATA = {
+    scannedCount: 32847, abnormalCount: 156, abnormalRate: 0.47,
+    categoryDeviation: { count: 38, items: [
+        { issue: '\u9910\u996e\u516c\u53f8\u5f00\u5177\u201c\u529e\u516c\u7528\u54c1\u201d', count: 28, stores: '\u534e\u4e2d\u00b7\u4e07\u8fbe\u5e97\u3001\u534e\u5357\u00b7\u6df1\u5733\u5e97' },
+        { issue: '\u9910\u996e\u516c\u53f8\u5f00\u5177\u201c\u4f1a\u52a1\u8d39\u201d', count: 10, stores: '\u534e\u5317\u00b7\u5317\u4eac\u7ad9\u5e97' },
+    ]},
+    taxRateAbnormal: { count: 15, items: [
+        { issue: '\u5e94\u5f006%\u8bef\u5f0013%', count: 8, stores: '\u534e\u4e2d\u00b7\u7b2c1\u5206\u516c\u53f8' },
+        { issue: '\u5e94\u5f006%\u8bef\u5f000%', count: 7, stores: '\u534e\u5357\u00b7\u5e7f\u5dde\u5206\u516c\u53f8' },
+    ]},
+    duplicateInvoices: { count: 3, items: [
+        { invoice1: '3300XXXX1234', invoice2: '3300XXXX5678', store: '\u534e\u4e2d\u00b7\u4e07\u8fbe\u5e97' },
+    ]},
+};
+
+// ===== Declaration Module v2 Data =====
+const TAX_PERIOD = {
+    year: 2026, month: 7, label: '2026\u5e747\u6708\u5f81\u671f', note: '\u672c\u6708\u65e0\u957f\u5047\u8c03\u6574\uff0c\u6309\u6cd5\u5b9a\u65e5\u5386\u6267\u884c',
+    taxes: [
+        { type: '\u589e\u503c\u7a0e', deadline: '2026-07-15', daysLeft: 12, totalCompanies: 600, completedCount: 577, pendingCount: 23, completionRate: 96.2, status: 'in_progress' },
+        { type: '\u4e2a\u4eba\u6240\u5f97\u7a0e', deadline: '2026-07-15', daysLeft: 12, totalCompanies: 600, completedCount: 582, pendingCount: 18, completionRate: 97.0, status: 'in_progress' },
+        { type: '\u4f01\u4e1a\u6240\u5f97\u7a0e', deadline: '2026-07-18', daysLeft: 15, totalCompanies: 600, completedCount: 555, pendingCount: 45, completionRate: 92.5, status: 'in_progress' },
+    ],
+};
+
+const DECLARATION_COMPANIES = [
+    { name: '\u534e\u4e2d\u00b7\u7b2c1\u5206\u516c\u53f8', region: '\u534e\u4e2d\u533a\u57df', taxType: '\u589e\u503c\u7a0e', status: 'abnormal', estimatedTax: 235000, actualTax: null, deadline: '2026-07-15', anomaly: '\u7a0e\u8d1f\u73870.5%\uff08\u884c\u4e1a\u57fa\u51c65-7%\uff09' },
+    { name: '\u534e\u5357\u00b7\u6df1\u5733\u5206\u516c\u53f8', region: '\u534e\u5357\u533a\u57df', taxType: '\u589e\u503c\u7a0e', status: 'pending', estimatedTax: 182000, actualTax: null, deadline: '2026-07-15', anomaly: null },
+    { name: '\u534e\u4e1c\u00b7\u4e0a\u6d77\u5e97', region: '\u534e\u4e1c\u533a\u57df', taxType: '\u589e\u503c\u7a0e', status: 'completed', estimatedTax: 985000, actualTax: 980000, deadline: '2026-07-15', anomaly: null },
+    { name: '\u534e\u4e1c\u00b7\u5357\u4eac\u5e97', region: '\u534e\u4e1c\u533a\u57df', taxType: '\u589e\u503c\u7a0e', status: 'completed', estimatedTax: 452000, actualTax: 448000, deadline: '2026-07-15', anomaly: null },
+    { name: '\u534e\u5357\u00b7\u5e7f\u5dde\u5206\u516c\u53f8', region: '\u534e\u5357\u533a\u57df', taxType: '\u589e\u503c\u7a0e', status: 'pending', estimatedTax: 312000, actualTax: null, deadline: '2026-07-15', anomaly: null },
+    { name: '\u534e\u5317\u00b7\u5317\u4eac\u7ad9\u5e97', region: '\u534e\u5317\u533a\u57df', taxType: '\u589e\u503c\u7a0e', status: 'completed', estimatedTax: 623000, actualTax: 625000, deadline: '2026-07-15', anomaly: null },
+    { name: '\u534e\u4e2d\u00b7\u4e07\u8fbe\u5e97', region: '\u534e\u4e2d\u533a\u57df', taxType: '\u589e\u503c\u7a0e', status: 'pending', estimatedTax: 128000, actualTax: null, deadline: '2026-07-15', anomaly: null },
+    { name: '\u6295\u8d44\u516c\u53f8', region: '\u6295\u8d44\u516c\u53f8', taxType: '\u589e\u503c\u7a0e', status: 'completed', estimatedTax: 1560000, actualTax: 1550000, deadline: '2026-07-15', anomaly: null },
+];
+
+const DECLARATION_ANOMALIES = {
+    highRisk: [
+        { type: '\u7a0e\u8d1f\u7387\u5f02\u5e38', company: '\u534e\u4e2d\u00b7\u7b2c1\u5206\u516c\u53f8', detail: '\u7a0e\u8d1f\u73870.5%\uff08\u884c\u4e1a\u57fa\u51c65-7%\uff09' },
+        { type: '\u622a\u6b62\u4e34\u8fd1\u672a\u62a5', detail: '8\u5bb6\u5f85\u7533\u62a5\u4e2d5\u5bb6\u622a\u6b62<3\u5929' },
+        { type: '\u7a0e\u989d\u7a81\u53d8', company: '\u534e\u5357\u00b7\u6df1\u5733\u5e97', detail: '\u00a518.2\u4e07 \u2192 \u00a53.5\u4e07 (\u219381%)' },
+    ],
+    warning: [
+        { type: '\u7533\u62a5\u6570\u636e\u7f3a\u5931', detail: '2\u5bb6\u516c\u53f8\u5173\u952e\u5b57\u6bb5\u4e0d\u5b8c\u6574' },
+    ],
+};
+
+const DECL_IO_DIFF = {
+    totalOutputTax: 48000000, totalInputTax: 32000000, totalPayable: 16000000, actualDeclared: 15800000, diff: -200000,
+    abnormalCompanies: [
+        { name: '\u534e\u4e2d\u00b7\u7b2c1\u5206\u516c\u53f8', output: 2300000, input: 1950000, diff: -350000 },
+        { name: '\u534e\u4e1c\u00b7\u4e0a\u6d77\u5e97', output: 980000, input: 850000, diff: -130000 },
+    ],
+};
+
+
+// ===== Render Functions =====
+var invoiceRingChart = null;
+
+function renderInvoiceModule() {
+    renderTodayTasks();
+    renderHealthOverview();
+    renderAbnormalCompanies();
+    renderUrgencyRanking();
+    renderSupplierRiskTracking();
+    renderSuggestions();
+}
+
+// ===== 1. \u4eca\u65e5\u5f85\u529e\u4e2d\u5fc3 =====
+function renderTodayTasks() {
+    var data = TODAY_TASKS;
+    var o = INVOICE_OVERVIEW;
+    var html =
+        '<div class="inv-tasks-header">' +
+            '<div class="th-title">🎯 \u4eca\u65e5\u5f85\u529e\u4e2d\u5fc3</div>' +
+            '<span class="th-deadline">\u23f0 \u8ddd ' + o.deadlineDays + '\u670815\u65e5\u7533\u62a5\u622a\u6b62\u8fd8\u6709 <strong>' + o.deadlineDays + '</strong> \u5929</span>' +
+        '</div>' +
+        '<div class="inv-task-group">' +
+            '<div class="inv-task-group-title" style="color:#f5222d;">🔴 \u7d27\u6025\u4efb\u52a1 \u00b7 ' + data.emergency.length + ' \u9879</div>';
+    data.emergency.forEach(function(t) {
+        html += '<div class="inv-task-item">' +
+            '<div class="ti-left">' +
+                '<span class="ti-bullet" style="background:#f5222d;"></span>' +
+                '<div>' +
+                    '<div class="ti-title">' + t.title + '</div>' +
+                    (t.desc ? '<div class="ti-desc">' + t.desc + '</div>' : '') +
+                '</div>' +
+            '</div>' +
+            '<div class="ti-actions">' +
+                (t.actions.indexOf('certify_one_click') >= 0 ? '<span class="sug-btn primary" onclick="batchCertifyHighRisk()">\u26a1 \u4e00\u952e\u8ba4\u8bc1</span>' : '') +
+                (t.actions.indexOf('drill_down') >= 0 ? '<span class="sug-btn default" onclick=\'showRegionInvoiceDetail("huazhong")\'>📍 \u4e0b\u94bb\u67e5\u770b</span>' : '') +
+                (t.actions.indexOf('send_urge') >= 0 ? '<span class="sug-btn default" onclick=\'executeSuggestion("send\u7763\u529e\u901a\u77e5")\'>📧 \u53d1\u7763\u529e</span>' : '') +
+                (t.actions.indexOf('view_detail') >= 0 ? '<span class="sug-btn default" onclick=\'executeSuggestion("\u67e5\u770b\u8865\u8ba4\u8bc1\u6e05\u5355")\'>\u67e5\u770b</span>' : '') +
+            '</div>' +
+        '</div>';
+    });
+    html += '</div>' +
+        '<div class="inv-task-group">' +
+            '<div class="inv-task-group-title" style="color:#faad14;">🟠 \u4eca\u65e5\u5f85\u529e \u00b7 ' + data.todo.length + ' \u9879</div>';
+    data.todo.forEach(function(t) {
+        html += '<div class="inv-task-item">' +
+            '<div class="ti-left">' +
+                '<span class="ti-bullet" style="background:#faad14;"></span>' +
+                '<div>' +
+                    '<div class="ti-title">' + t.title + '</div>' +
+                    (t.desc ? '<div class="ti-desc">' + t.desc + '</div>' : '') +
+                '</div>' +
+            '</div>' +
+            '<div class="ti-actions">' +
+                (t.actions.indexOf('view_detail') >= 0 ? '<span class="sug-btn default" onclick=\'executeSuggestion("\u67e5\u770b\u8865\u8ba4\u8bc1\u6e05\u5355")\'>\u67e5\u770b</span>' : '') +
+                (t.actions.indexOf('send_rectification') >= 0 ? '<span class="sug-btn default" onclick=\'executeSuggestion("\u53d1\u9001\u6574\u6539\u901a\u77e5")\'>📧 \u53d1\u6574\u6539\u901a\u77e5</span>' : '') +
+                (t.actions.indexOf('export') >= 0 ? '<span class="sug-btn default" onclick="exportCertifyList()">📤 \u5bfc\u51fa</span>' : '') +
+            '</div>' +
+        '</div>';
+    });
+    html += '</div>' +
+        '<div class="inv-task-group">' +
+            '<div class="inv-task-group-title" style="color:#52c41a;">\u2705 \u5df2\u5b8c\u6210 <span style="font-weight:400;color:#bfbfbf;font-size:10px;">\uff08\u70b9\u51fb\u5c55\u5f00\uff09</span></div>' +
+            '<div style="padding:4px 0;font-size:10px;color:#bfbfbf;text-align:center;">\u6682\u65e0\u5df2\u5b8c\u6210\u4e8b\u9879</div>' +
+        '</div>';
+    document.getElementById('todayTasksContainer').innerHTML = html;
+}
+
+// ===== 2. \u96c6\u56e2\u5065\u5eb7\u4e00\u77a5 =====
+function renderHealthOverview() {
+    var o = INVOICE_OVERVIEW;
+    var oo = URGENCY_RANKING;
+    var urgencyCount = oo.priority.length + oo.watch.length;
+    // Calculate health score
+    var certScore = Math.min(o.certRate / 100 * 40, 40);
+    var lossScore = Math.max(0, 50 - o.expiredLossTotal / 100000) * 0.6;
+    var healthScore = Math.round(certScore + lossScore);
+    var healthLevel = healthScore >= 80 ? 'A' : (healthScore >= 60 ? 'B' : (healthScore >= 40 ? 'C' : 'D'));
+    var healthColor = healthLevel === 'A' ? '#52c41a' : (healthLevel === 'B' ? '#1890ff' : (healthLevel === 'C' ? '#faad14' : '#f5222d'));
+    var healthLabel = healthLevel === 'A' ? '\u4f18\u79c0' : (healthLevel === 'B' ? '\u826f\u597d' : (healthLevel === 'C' ? '\u5173\u6ce8' : '\u98ce\u9669'));
+    var deadlineColor = o.deadlineDays < 7 ? '#f5222d' : (o.deadlineDays < 15 ? '#faad14' : '#52c41a');
+    var html =
+        '<div class="inv-health-card" style="border-left:3px solid ' + deadlineColor + ';">' +
+            '<div class="hc-icon">📅</div>' +
+            '<div class="hc-label">\u8ba4\u8bc1\u5012\u8ba1\u65f6</div>' +
+            '<div class="hc-value" style="color:' + deadlineColor + ';">' + o.deadlineDays + ' \u5929</div>' +
+            '<div class="hc-sub">\u8ddd7\u670815\u65e5\u7533\u62a5\u622a\u6b62</div>' +
+        '</div>' +
+        '<div class="inv-health-card" style="border-left:3px solid ' + (o.certRate < 50 ? '#f5222d' : (o.certRate < 70 ? '#faad14' : '#52c41a')) + ';">' +
+            '<div class="hc-icon">📊</div>' +
+            '<div class="hc-label">\u8ba4\u8bc1\u8fdb\u5ea6</div>' +
+            '<div class="hc-value" style="font-size:20px;color:#333;">' + o.certRate + '%</div>' +
+            '<div class="hc-sub">\u5df2\u8ba4\u8bc1 ' + o.certifiedCount.toLocaleString() + ' / ' + o.totalCount.toLocaleString() + '</div>' +
+        '</div>' +
+        '<div class="inv-health-card" style="border-left:3px solid ' + (o.expiredLossTotal > 1000000 ? '#f5222d' : (o.expiredLossTotal > 500000 ? '#faad14' : '#52c41a')) + ';">' +
+            '<div class="hc-icon">💰</div>' +
+            '<div class="hc-label">\u8fc7\u671f\u635f\u5931</div>' +
+            '<div class="hc-value" style="color:#f5222d;font-size:20px;">\u00a5' + Math.round(o.expiredLossTotal / 10000) + '\u4e07</div>' +
+            '<div class="hc-sub">\u5982\u4e0d\u8865\u6551\u672c\u6708\u9884\u4f30\u635f\u5931</div>' +
+        '</div>' +
+        '<div class="inv-health-card" style="border-left:3px solid ' + healthColor + ';">' +
+            '<div class="hc-icon">🏆</div>' +
+            '<div class="hc-label">\u5065\u5eb7\u8bc4\u5206</div>' +
+            '<div class="hc-value" style="color:' + healthColor + ';">' + healthLevel + '\u7ea7</div>' +
+            '<div class="hc-sub">' + healthLabel + ' \u00b7 ' + healthScore + '\u5206</div>' +
+        '</div>';
+    document.getElementById('healthOverview').innerHTML = html;
+}
+
+// ===== 3. \u5f02\u5e38\u516c\u53f8\u6e05\u5355 =====
+function renderAbnormalCompanies() {
+    var data = ABNORMAL_COMPANIES;
+    var html = '';
+    // High risk col
+    var highHtml = '<div class="inv-abnormal-col-title">🔴 \u9ad8\u5371\u516c\u53f8 \u00b7 ' + data.highRisk.length + ' \u5bb6</div>';
+    data.highRisk.forEach(function(c) {
+        highHtml += '<div class="inv-abnormal-item">' +
+            '<div class="ai-name">' + c.name + '</div>' +
+            '<div class="ai-stat">\u8ba4\u8bc1\u7387 ' + c.certRate + '% \u00b7 \u5f02\u5e38\u7968 ' + c.abnormalCount + '\u5f20</div>' +
+            '<div class="ai-actions">' +
+                '<span class="ai-btn" style="background:#f5222d;color:#fff;" onclick=\'showRegionInvoiceDetail("huazhong")\'>📍 \u4e0b\u94bb</span>' +
+                '<span class="ai-btn" style="background:#ffccc7;color:#f5222d;" onclick=\'executeSuggestion("send\u7763\u529e\u901a\u77e5")\'>📧 \u53d1\u7763\u529e</span>' +
+            '</div>' +
+        '</div>';
+    });
+    // Warning col
+    var warnHtml = '<div class="inv-abnormal-col-title">🟠 \u9884\u8b66\u516c\u53f8 \u00b7 ' + data.warning.length + ' \u5bb6</div>';
+    data.warning.forEach(function(c) {
+        warnHtml += '<div class="inv-abnormal-item">' +
+            '<div class="ai-name">' + c.name + '</div>' +
+            '<div class="ai-stat">\u8ba4\u8bc1\u7387 ' + c.certRate + '% \u00b7 \u5f02\u5e38\u7968 ' + c.abnormalCount + '\u5f20</div>' +
+            '<div class="ai-actions">' +
+                '<span class="ai-btn" style="background:#1890ff;color:#fff;" onclick=\'showRegionInvoiceDetail("huazhong")\'>📍 \u4e0b\u94bb</span>' +
+                (c.level === 'region' ? '<span class="ai-btn" style="background:#ffe58f;color:#d48806;" onclick=\'executeSuggestion("send\u7763\u529e\u901a\u77e5")\'>📧 \u53d1\u7763\u529e</span>' : '<span class="ai-btn" style="background:#ffe58f;color:#d48806;" onclick=\'executeSuggestion("send\u50ac\u529e")\'>📧 \u50ac\u529e</span>') +
+            '</div>' +
+        '</div>';
+    });
+    // Normal col (collapsed)
+    var normalHtml = '<div class="inv-abnormal-col-title">🟢 \u5176\u4ed6\u516c\u53f8</div>' +
+        '<div class="inv-abnormal-item">' +
+            '<div class="ai-stat" style="color:#52c41a;">\u2705 ' + data.normal.totalCount + ' \u5bb6\u516c\u53f8\u6b63\u5e38\u8fd0\u8f6c</div>' +
+            '<div class="ai-stat" style="font-size:9px;color:#bfbfbf;">\u5e73\u5747\u8ba4\u8bc1\u7387 ' + data.normal.avgCertRate + '%</div>' +
+        '</div>';
+    html = '<div class="inv-abnormal-title">🏢 \u5f02\u5e38\u516c\u53f8\u6e05\u5355 <span style="font-size:10px;font-weight:400;color:#8c8c8c;">\u6309\u5f02\u5e38\u7a0b\u5ea6\u6392\u5e8f</span></div>' +
+        '<div class="inv-abnormal-grid">' +
+            '<div class="inv-abnormal-col high">' + highHtml + '</div>' +
+            '<div class="inv-abnormal-col warn">' + warnHtml + '</div>' +
+            '<div class="inv-abnormal-col normal">' + normalHtml + '</div>' +
+        '</div>';
+    document.getElementById('abnormalCompanies').innerHTML = html;
+}
+
+// ===== 4. \u7533\u62a5\u7d27\u8feb\u5ea6\u6392\u884c =====
+function renderUrgencyRanking() {
+    var data = URGENCY_RANKING;
+    var html = '';
+    // Priority block
+    var pHtml = '<div class="inv-urgency-block-title">🔴 \u4f18\u5148\u5904\u7406 \u00b7 \u7d27\u8feb\u5ea6 \u2265 70</div>';
+    data.priority.forEach(function(item) {
+        pHtml += '<div class="inv-urgency-item">' +
+            '<div class="ui-row1">' +
+                '<span class="ui-supplier">' + item.supplierName + '</span>' +
+                '<span class="ui-score high">' + item.urgencyScore + '</span>' +
+            '</div>' +
+            '<div class="ui-row1">' +
+                '<span class="ui-amount">\u00a5' + item.totalAmount.toLocaleString() + '</span>' +
+                '<span style="font-size:11px;color:#8c8c8c;">' + item.invoiceCount + '\u5f20\u672a\u8ba4\u8bc1</span>' +
+            '</div>' +
+            '<div class="ui-row2">' + item.regionName + ' \u00b7 ' + item.companyName + ' \u00b7 \u53d1\u7968\u5f00\u5177' + item.oldestDays + '\u5929</div>' +
+            '<div class="ui-row3">\u82e5\u9519\u8fc7\u672c\u6708\u7533\u62a5\uff0c\u9884\u4f30\u591a\u7f34\u589e\u503c\u7a0e \u00a5' + (item.estimatedLoss / 10000).toFixed(1) + '\u4e07</div>' +
+            '<div class="ui-actions">' +
+                '<span class="sug-btn primary" onclick="batchCertifyHighRisk()">\u26a1 \u4e00\u952e\u8ba4\u8bc1</span>' +
+                '<span class="sug-btn default" onclick=\'showExpiringInvoiceDetail("' + item.supplierName + '")\'>📄 \u67e5\u770b\u660e\u7ec6</span>' +
+            '</div>' +
+        '</div>';
+    });
+    // Watch block
+    var wHtml = '<div class="inv-urgency-block-title">🟠 \u5173\u6ce8\u5904\u7406 \u00b7 \u7d27\u8feb\u5ea6 40-69</div>';
+    data.watch.forEach(function(item) {
+        wHtml += '<div class="inv-urgency-item">' +
+            '<div class="ui-row1">' +
+                '<span class="ui-supplier">' + item.supplierName + '</span>' +
+                '<span class="ui-score mid">' + item.urgencyScore + '</span>' +
+            '</div>' +
+            '<div class="ui-row1">' +
+                '<span style="font-size:12px;color:#faad14;font-weight:600;">\u00a5' + item.totalAmount.toLocaleString() + '</span>' +
+                '<span style="font-size:11px;color:#8c8c8c;">' + item.invoiceCount + '\u5f20\u672a\u8ba4\u8bc1</span>' +
+            '</div>' +
+            '<div class="ui-row2">' + item.regionName + ' \u00b7 ' + item.companyName + '</div>' +
+            '<div class="ui-actions">' +
+                '<span class="sug-btn primary" onclick="batchCertifyHighRisk()">\u26a1 \u4e00\u952e\u8ba4\u8bc1</span>' +
+                '<span class="sug-btn default" onclick=\'showExpiringInvoiceDetail("' + item.supplierName + '")\'>📄 \u67e5\u770b\u660e\u7ec6</span>' +
+            '</div>' +
+        '</div>';
+    });
+    // Normal block
+    var nHtml = '<div class="inv-urgency-block-title" style="color:#52c41a;">🟢 \u5e38\u89c4\u5904\u7406</div>' +
+        '<div style="padding:8px;font-size:11px;color:#8c8c8c;">\u5176\u4ed6 ' + data.normal.uncertifiedTotal.toLocaleString() + ' \u5f20\u672a\u8ba4\u8bc1\u53d1\u7968\u6b63\u5e38\u5b89\u6392\uff0c\u6682\u65e0\u9700\u7279\u522b\u5173\u6ce8</div>';
+    html = '<div class="inv-urgency-title">\u23f0 \u7533\u62a5\u7d27\u8feb\u5ea6\u6392\u884c <span style="font-size:10px;font-weight:400;color:#8c8c8c;">\u8ddd' + data.deadline.date + '\u622a\u6b62\u8fd8\u6709 ' + data.deadline.daysLeft + ' \u5929</span></div>' +
+        '<div class="inv-urgency-sub">' + data.deadline.unifiedMessage + '\uff0c\u4ee5\u4e0b\u53d1\u7968\u5efa\u8bae\u4f18\u5148\u5904\u7406 \u2193</div>' +
+        '<div class="inv-urgency-block priority">' + pHtml + '</div>' +
+        '<div class="inv-urgency-block watch">' + wHtml + '</div>' +
+        '<div class="inv-urgency-block normal">' + nHtml + '</div>';
+    document.getElementById('urgencyRanking').innerHTML = html;
+}
+
+// ===== 5. \u4f9b\u5e94\u5546\u98ce\u9669\u8ffd\u8e2a =====
+function renderSupplierRiskTracking() {
+    var data = SUPPLIER_INVOICE_DATA.slice().sort(function(a, b) { return b.abnormalRate - a.abnormalRate; });
+    var levelColor = { A: '#52c41a', B: '#1890ff', C: '#faad14', D: '#f5222d' };
+    var levelBg = { A: '#f6ffed', B: '#e6f7ff', C: '#fffbe6', D: '#fff1f0' };
+    var borderColor = { A: '#b7eb8f', B: '#91d5ff', C: '#ffe58f', D: '#ffccc7' };
+    var html = '<div class="inv-supplier-title">' +
+            '<span>🎪 \u4f9b\u5e94\u5546\u98ce\u9669\u8ffd\u8e2a <span style="font-size:10px;font-weight:400;color:#8c8c8c;">\u00b7 \u5f53\u524d\u7533\u62a5\u671f TOP 5</span></span>' +
+            '<span class="inv-supplier-nav" onclick="sendChat(\'\u67e5\u770b\u5b8c\u6574\u4f9b\u5e94\u5546\u98ce\u9669\u5206\u6790\')">📊 \u5b8c\u6574\u5206\u6790 \u2192 \u98ce\u9669\u76d1\u63a7</span>' +
+        '</div>';
+    data.slice(0, 5).forEach(function(s, i) {
+        var bg = levelBg[s.riskLevel] || '#fafafa';
+        html += '<div class="inv-supplier-item" style="border-left-color:' + (borderColor[s.riskLevel] || '#e8e8ed') + ';background:' + bg + ';">' +
+            '<div class="si-left">' +
+                '<span class="si-level" style="background:' + (levelColor[s.riskLevel] || '#8c8c8c') + ';">' + s.riskLevel + '</span>' +
+                '<div>' +
+                    '<div class="si-name">' + s.name + '</div>' +
+                    '<div class="si-stat">\u5f02\u5e38\u7387 ' + s.abnormalRate + '% \u00b7 \u98ce\u9669\u5206 ' + s.riskScore + ' \u00b7 ' + s.abnormalCount + '\u5f20\u5f02\u5e38\u7968</div>' +
+                '</div>' +
+            '</div>' +
+            '<div class="si-actions">' +
+                (s.riskLevel === 'D' || s.riskLevel === 'C' ? '<span class="sug-btn default" onclick=\'showSupplierDetail("' + s.name + '")\'>📧 \u53d1\u6574\u6539\u901a\u77e5</span>' : '') +
+                '<span class="sug-btn default" onclick=\'showSupplierDetail("' + s.name + '")\'>\u67e5\u770b\u660e\u7ec6</span>' +
+            '</div>' +
+        '</div>';
+    });
+    document.getElementById('supplierRiskTracking').innerHTML = html;
+}
+
+// ===== 6. \u667a\u80fd\u5efa\u8bae =====
+function renderSuggestions() {
+    var urgencyCount = URGENCY_RANKING.priority.length;
+    var suggestions = [
+        { priority: 'p0', icon: '\u2705', text: '\u5f00\u542f\u81ea\u52a8\u8ba4\u8bc1\u89c4\u5219\uff0c\u9884\u8ba1\u53ef\u63d0\u5347\u8ba4\u8bc1\u7387\u81f385%', btn1: '\u7acb\u5373\u5f00\u542f', btn1Action: '\u5f00\u542f\u81ea\u52a8\u8ba4\u8bc1\u89c4\u5219' },
+        { priority: 'p0', icon: '🚀', text: '\u4f18\u5148\u5904\u7406\u9ad8\u5371\u53d1\u7968\uff1a' + urgencyCount + '\u9879\u7d27\u8feb\u5ea6>70', btn1: '\u4e00\u952e\u8ba4\u8bc1\u9ad8\u5371\u53d1\u7968', btn1Action: 'batchCertifyHighRisk', btn2: '\u5bfc\u51fa\u5f85\u8ba4\u8bc1\u6e05\u5355', btn2Action: 'exportCertifyList' },
+        { priority: 'p1', icon: '📊', text: '\u534e\u4e2d\u533a\u57df\u8ba4\u8bc1\u7387\u4ec545%\uff0c\u4f4e\u4e8e\u96c6\u56e2\u5e73\u5747\u7ebf', btn1: '\u4e0b\u94bb\u67e5\u770b', btn1Action: 'showRegionInvoiceDetail(\"huazhong\")', btn2: '\u53d1\u9001\u7763\u529e\u901a\u77e5', btn2Action: 'send\u7763\u529e\u901a\u77e5' },
+        { priority: 'p2', icon: '📋', text: 'AI\u5df2\u751f\u6210\u8865\u8ba4\u8bc1\u6e05\u5355\uff0c\u9884\u8ba1\u53ef\u633d\u56de\u635f\u593180\u4e07', btn1: '\u67e5\u770b\u6e05\u5355', btn1Action: '\u67e5\u770b\u8865\u8ba4\u8bc1\u6e05\u5355', btn2: '\u751f\u6210\u5de5\u5355', btn2Action: '\u751f\u6210\u8865\u8ba4\u8bc1\u5de5\u5355' }
+    ];
+    var html = '';
+    suggestions.forEach(function(s) {
+        html += '<div class="inv-suggestion ' + s.priority + '">' +
+            '<div style="display:flex;align-items:center;gap:8px;flex:1;">' +
+                '<span>' + s.icon + '</span>' +
+                '<span class="sug-text">' + s.text + '</span>' +
+            '</div>' +
+            '<div class="sug-actions">' +
+                '<span class="sug-btn primary" onclick=\'executeSuggestion("' + s.btn1Action + '")\'>' + s.btn1 + '</span>';
+        if (s.btn2) {
+            html += '<span class="sug-btn default" onclick=\'executeSuggestion("' + s.btn2Action + '")\'>' + s.btn2 + '</span>';
+        }
+        html += '</div></div>';
+    });
+    document.getElementById('smartSuggestions').innerHTML = html;
+}
+
+// ===== Interaction Functions (v2) =====
+function showRegionInvoiceDetail(regionId) {
+    var region = REGION_INVOICE_DATA.find(function(r) { return r.id === regionId; });
+    if (!region) return;
+    var title = '📊 ' + region.name + ' \u00b7 \u8fdb\u9879\u8be6\u60c5';
+    var bodyHtml = '<div style="margin-bottom:12px;">' +
+        '<div class="kpi-row" style="margin-bottom:0;">' +
+            '<div class="kpi-card"><div class="kc-top"><span class="kc-label">\u53d1\u7968\u603b\u6570</span></div><div class="kc-value" style="font-size:16px;color:#333;">' + region.totalCount.toLocaleString() + '</div></div>' +
+            '<div class="kpi-card"><div class="kc-top"><span class="kc-label">\u5df2\u8ba4\u8bc1</span></div><div class="kc-value" style="font-size:16px;color:#1890ff;">' + region.certifiedCount.toLocaleString() + '</div></div>' +
+            '<div class="kpi-card"><div class="kc-top"><span class="kc-label">\u672a\u8ba4\u8bc1</span></div><div class="kc-value" style="font-size:16px;color:#f5222d;">' + (region.totalCount - region.certifiedCount).toLocaleString() + '</div></div>' +
+            '<div class="kpi-card"><div class="kc-top"><span class="kc-label">\u8ba4\u8bc1\u7387</span></div><div class="kc-value" style="font-size:16px;color:' + (region.certRate < 60 ? '#f5222d' : (region.certRate < 80 ? '#faad14' : '#52c41a')) + ';">' + region.certRate + '%</div></div>' +
+        '</div>' +
+    '</div>' +
+    '<div style="font-size:12px;color:#333;margin-bottom:8px;font-weight:600;">\u95e8\u5e97\u8ba4\u8bc1\u6392\u884c\uff08\u6309\u8ba4\u8bc1\u7387\u5347\u5e8f\uff09</div>' +
+    '<table class="inv-table"><tr><th>\u95e8\u5e97</th><th>\u53d1\u7968\u6570</th><th>\u5df2\u8ba4\u8bc1</th><th>\u8ba4\u8bc1\u7387</th><th>\u5f02\u5e38\u7968\u6570</th></tr>';
+    var stores = [];
+    for (var i = 1; i <= 10; i++) {
+        var rate = Math.max(10, Math.min(100, region.certRate + Math.round((Math.random() - 0.5) * 40)));
+        var total = Math.round(region.totalCount / region.companyCount * (0.5 + Math.random()));
+        var cert = Math.round(total * rate / 100);
+        var ab = Math.round(total * (Math.random() * 0.05));
+        stores.push({ name: region.name + 'XX\u8def\u5e97' + i, total: total, cert: cert, rate: rate, ab: ab });
+    }
+    stores.sort(function(a, b) { return a.rate - b.rate; });
+    stores.forEach(function(s) {
+        bodyHtml += '<tr>' +
+            '<td style="font-weight:500;">' + s.name + '</td>' +
+            '<td>' + s.total.toLocaleString() + '</td>' +
+            '<td>' + s.cert.toLocaleString() + '</td>' +
+            '<td class="' + (s.rate < 60 ? 'rate-red' : (s.rate < 80 ? 'rate-yellow' : 'rate-green')) + '">' + s.rate + '%</td>' +
+            '<td>' + (s.ab > 0 ? '<span class="inv-badge ' + (s.ab > 5 ? 'red' : 'yellow') + '">' + s.ab + '</span>' : '<span style="color:#52c41a;">0</span>') + '</td>' +
+        '</tr>';
+    });
+    bodyHtml += '</table>';
+    showKPIDetail(title, bodyHtml);
+}
+
+function showSupplierDetail(supplierName) {
+    var supplier = SUPPLIER_INVOICE_DATA.find(function(s) { return s.name === supplierName; });
+    if (!supplier) return;
+    var levelColor = { A: '#52c41a', B: '#1890ff', C: '#faad14', D: '#f5222d' };
+    var bodyHtml =
+        '<div style="margin-bottom:12px;">' +
+            '<div style="display:flex;gap:16px;align-items:center;margin-bottom:10px;">' +
+                '<div style="width:40px;height:40px;background:' + (levelColor[supplier.riskLevel] || '#8c8c8c') + ';border-radius:50%;display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;font-weight:700;">' + supplier.riskLevel + '</div>' +
+                '<div><div style="font-size:14px;font-weight:600;">' + supplier.name + '</div><div style="font-size:11px;color:#8c8c8c;">\u7a0e\u53f7\uff1a' + supplier.taxId + '</div></div>' +
+            '</div>' +
+        '</div>' +
+        '<table class="inv-table"><tr><th>\u6307\u6807</th><th>\u6570\u503c</th></tr>' +
+        '<tr><td>\u603b\u7968\u6570</td><td style="font-weight:600;">' + supplier.totalCount.toLocaleString() + ' \u5f20</td></tr>' +
+        '<tr><td>\u5f02\u5e38\u7968\u6570</td><td style="color:#f5222d;font-weight:600;">' + supplier.abnormalCount + ' \u5f20</td></tr>' +
+        '<tr><td>\u5f02\u5e38\u7387</td><td style="font-weight:600;color:' + (supplier.abnormalRate > 5 ? '#f5222d' : '#faad14') + ';">' + supplier.abnormalRate + '%</td></tr>' +
+        '<tr><td>\u98ce\u9669\u8bc4\u5206</td><td style="font-weight:600;">' + supplier.riskScore + ' / 100</td></tr>' +
+        '<tr><td>\u98ce\u9669\u7b49\u7ea7</td><td><span class="inv-supplier-badge ' + supplier.riskLevel + '" style="font-size:13px;">' + supplier.riskLevel + '\u7ea7</span></td></tr>' +
+        '</table>' +
+        '<div style="margin-top:12px;display:flex;gap:8px;">' +
+            '<div class="v2-action-btn" onclick=\'sendChat("\u5bfc\u51fa ' + supplier.name + ' \u5f02\u5e38\u53d1\u7968\u6e05\u5355")\'>📥 \u5bfc\u51fa\u5f02\u5e38\u6e05\u5355</div>' +
+            '<div class="v2-action-btn" onclick=\'sendChat("\u5411 ' + supplier.name + ' \u53d1\u9001\u6574\u6539\u901a\u77e5")\'>📧 \u53d1\u9001\u6574\u6539\u901a\u77e5</div>' +
+        '</div>';
+    showKPIDetail('🎪 ' + supplier.name + ' \u00b7 \u4f9b\u5e94\u5546\u8be6\u60c5', bodyHtml);
+}
+
+function showExpiringInvoiceDetail(supplierName) {
+    var item = URGENCY_RANKING.priority.find(function(i) { return i.supplierName === supplierName; }) ||
+               URGENCY_RANKING.watch.find(function(i) { return i.supplierName === supplierName; });
+    if (!item) return;
+    var invoices = '';
+    for (var i = 1; i <= item.invoiceCount; i++) {
+        var invoiceNo = '3300' + String(Math.floor(10000000 + Math.random() * 90000000));
+        var amount = (item.totalAmount / item.invoiceCount * (0.7 + Math.random() * 0.6)).toFixed(2);
+        invoices += '<tr><td>' + invoiceNo + '</td><td>\u00a5' + Number(amount).toLocaleString() + '</td><td>' + item.regionName + '</td><td>' + item.companyName + '</td></tr>';
+    }
+    var bodyHtml =
+        '<div style="margin-bottom:10px;">' +
+            '<div style="font-size:14px;font-weight:600;">' + item.supplierName + '</div>' +
+            '<div style="display:flex;gap:16px;margin-top:6px;">' +
+                '<span style="font-size:12px;color:#8c8c8c;">💰 \u603b\u91d1\u989d\uff1a<strong style="color:#f5222d;">\u00a5' + item.totalAmount.toLocaleString() + '</strong></span>' +
+                '<span style="font-size:12px;color:#8c8c8c;">📄 \u53d1\u7968\u6570\uff1a<strong>' + item.invoiceCount + '</strong> \u5f20</span>' +
+                '<span style="font-size:12px;color:#8c8c8c;">🎯 \u7d27\u8feb\u5ea6\uff1a<strong style="color:' + (item.urgencyScore >= 70 ? '#f5222d' : '#faad14') + ';">' + item.urgencyScore + '</strong></span>' +
+            '</div>' +
+            '<div style="font-size:11px;color:#595959;margin-top:4px;">📍 ' + item.regionName + ' \u00b7 ' + item.companyName + ' \u00b7 \u53d1\u7968\u5f00\u5177' + item.oldestDays + '\u5929</div>' +
+            '<div style="font-size:11px;color:#f5222d;margin-top:2px;">\u82e5\u9519\u8fc7\u672c\u6708\u7533\u62a5\uff0c\u9884\u4f30\u591a\u7f34\u589e\u503c\u7a0e \u00a5' + (item.estimatedLoss / 10000).toFixed(1) + '\u4e07</div>' +
+        '</div>' +
+        '<table class="inv-table"><tr><th>\u53d1\u7968\u53f7</th><th>\u91d1\u989d</th><th>\u533a\u57df</th><th>\u516c\u53f8</th></tr>' + invoices + '</table>' +
+        '<div style="margin-top:10px;display:flex;gap:8px;">' +
+            '<div class="sug-btn primary" style="display:inline-block;padding:6px 14px;font-size:11px;border-radius:4px;cursor:pointer;background:#f5222d;color:#fff;" onclick="batchCertifyHighRisk()">\u26a1 \u4e00\u952e\u8ba4\u8bc1</div>' +
+            '<div class="v2-action-btn" onclick=\'sendChat("\u5bfc\u51fa ' + item.supplierName + ' \u5f85\u8ba4\u8bc1\u53d1\u7968")\'>📤 \u5bfc\u51fa\u6e05\u5355</div>' +
+        '</div>';
+    showKPIDetail('\u23f0 ' + item.supplierName + ' \u00b7 \u7d27\u8feb\u53d1\u7968\u660e\u7ec6', bodyHtml);
+}
+
+function showCertifyCalendar() {
+    var days = [];
+    for (var i = 1; i <= 30; i++) {
+        days.push({ day: i, count: Math.round(30000 + Math.random() * 40000) });
+    }
+    var html = '<div style="font-size:12px;color:#333;margin-bottom:10px;font-weight:600;">📅 \u672c\u6708\u8ba4\u8bc1\u65e5\u5386 \u00b7 \u6bcf\u65e5\u8ba4\u8bc1\u5f20\u6570</div><div style="display:grid;grid-template-columns:repeat(10,1fr);gap:4px;">';
+    days.forEach(function(d) {
+        var intensity = Math.min(100, Math.round(d.count / 700));
+        html += '<div style="padding:6px 4px;text-align:center;background:rgba(24,144,255,' + (0.1 + intensity * 0.007) + ');border-radius:4px;font-size:10px;">' +
+            '<div style="font-weight:600;">' + d.day + '</div>' +
+            '<div style="color:#8c8c8c;">' + Math.round(d.count / 1000) + 'k</div>' +
+        '</div>';
+    });
+    html += '</div>';
+    showKPIDetail('📅 \u672c\u6708\u8ba4\u8bc1\u65e5\u5386', html);
+}
+
+// ===== Search Function =====
+function invSearchChange(val) {
+    var dropdown = document.getElementById('invSearchDropdown');
+    if (!val || val.length < 1) { dropdown.classList.remove('show'); return; }
+    var matches = [];
+    var lower = val.toLowerCase();
+    // Search regions
+    REGION_INVOICE_DATA.forEach(function(r) {
+        if (r.name.indexOf(lower) >= 0 || r.id.indexOf(lower) >= 0) {
+            matches.push({ name: r.name, type: '\u533a\u57df', detail: r.companyCount + '\u5bb6\u516c\u53f8' });
+        }
+    });
+    // Search suppliers
+    SUPPLIER_INVOICE_DATA.forEach(function(s) {
+        if (s.name.indexOf(lower) >= 0) {
+            matches.push({ name: s.name, type: '\u4f9b\u5e94\u5546', detail: '\u98ce\u9669\u7b49\u7ea7 ' + s.riskLevel + '\u7ea7' });
+        }
+    });
+    // Search abnormal companies
+    ABNORMAL_COMPANIES.highRisk.concat(ABNORMAL_COMPANIES.warning).forEach(function(c) {
+        if (c.name.indexOf(lower) >= 0) {
+            matches.push({ name: c.name, type: c.level === 'region' ? '\u533a\u57df' : '\u516c\u53f8', detail: '\u8ba4\u8bc1\u7387 ' + c.certRate + '%' });
+        }
+    });
+    if (matches.length === 0) {
+        dropdown.innerHTML = '<div style="padding:10px;font-size:11px;color:#bfbfbf;text-align:center;">\u65e0\u5339\u914d\u7ed3\u679c</div>';
+        dropdown.classList.add('show');
+        return;
+    }
+    var html = '';
+    matches.slice(0, 8).forEach(function(m) {
+        var highlighted = m.name.replace(new RegExp('(' + val + ')', 'gi'), '<span class="si-match">$1</span>');
+        html += '<div class="inv-search-item" onclick=\'executeSuggestion("showRegionInvoiceDetail(\\"huazhong\\")")\'>' +
+            '<span>' + highlighted + '</span> <span style="color:#8c8c8c;font-size:10px;">' + m.type + ' \u00b7 ' + m.detail + '</span>' +
+        '</div>';
+    });
+    if (matches.length > 8) html += '<div style="padding:6px;font-size:10px;color:#bfbfbf;text-align:center;">\u8fd8\u6709 ' + (matches.length - 8) + ' \u4e2a\u7ed3\u679c...</div>';
+    dropdown.innerHTML = html;
+    dropdown.classList.add('show');
+}
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.inv-search-wrapper')) {
+        var d = document.getElementById('invSearchDropdown');
+        if (d) d.classList.remove('show');
+    }
+});
+
+
+function batchCertifyHighRisk() {
+    var totalCount = URGENCY_RANKING.priority.reduce(function(sum, i) { return sum + i.invoiceCount; }, 0);
+    if (confirm('确认一键认证所有优先处理发票（' + URGENCY_RANKING.priority.length + '家供应商，共' + totalCount + '张发票）？')) {
+        alert('✅ 认证任务已提交！\\n共处理 ' + totalCount + ' 张发票。');
+    }
+}
+
+function exportCertifyList() {
+    alert('📤 待认证清单已生成，即将开始下载...\n共 ' + INVOICE_OVERVIEW.uncertifiedCount.toLocaleString() + ' 张发票待认证。');
+}
+
+function executeSuggestion(action) {
+    if (action === 'batchCertifyHighRisk') {
+        batchCertifyHighRisk();
+    } else if (action.indexOf('showRegionInvoiceDetail') >= 0) {
+        // Extract regionId
+        var match = action.match(/"([^"]+)"/);
+        if (match) showRegionInvoiceDetail(match[1]);
+    } else {
+        sendChat(action);
+    }
+}
+
+
+
+
+
+// ===== Declaration Module v2 =====
+function renderDeclarationModule() {
+    renderTaxPeriod();
+    renderDeclProgress();
+    renderDeclHealth();
+    renderDeclCompanyTable('all');
+    renderDeclAnomalies();
+    renderDeclIODiff();
+    renderDeclTrends();
+}
+
+function renderTaxPeriod() {
+    var data = TAX_PERIOD;
+    var html = '<div class="decl-period-title">📅 \u5f53\u524d\u5f81\u671f <span style="font-size:10px;font-weight:400;color:#8c8c8c;">' + data.label + '</span></div>' +
+        '<div class="decl-period-note">' + data.note + '</div>' +
+        '<div class="decl-tax-row">';
+    data.taxes.forEach(function(t) {
+        var color = t.daysLeft < 7 ? '#f5222d' : (t.daysLeft < 15 ? '#faad14' : '#52c41a');
+        html += '<div class="decl-tax-item" style="border-left-color:' + color + ';">' +
+            '<div class="ti-name">' + t.type + '</div>' +
+            '<div class="ti-deadline">\u622a\u6b62 ' + t.deadline + '</div>' +
+            '<div class="ti-days" style="color:' + color + ';">\u5269 ' + t.daysLeft + ' \u5929</div>' +
+            '<div class="ti-progress">\u5f85\u7533\u62a5 ' + t.pendingCount + '/' + t.totalCompanies + ' \u00b7 \u5df2\u5b8c\u6210 ' + t.completionRate + '%</div>' +
+        '</div>';
+    });
+    html += '</div>';
+    document.getElementById('taxPeriodBar').innerHTML = html;
+}
+
+function renderDeclProgress() {
+    var data = TAX_PERIOD;
+    var vat = data.taxes[0];
+    var html =
+        '<div class="decl-progress-card"><div class="pc-icon">\u2705</div><div class="pc-label">\u5df2\u7533\u62a5</div><div class="pc-value" style="color:#52c41a;">' + vat.completedCount + '</div><div style="font-size:10px;color:#8c8c8c;">\u589e\u503c\u7a0e</div></div>' +
+        '<div class="decl-progress-card"><div class="pc-icon">\u23f3</div><div class="pc-label">\u5f85\u7533\u62a5</div><div class="pc-value" style="color:#faad14;">' + vat.pendingCount + '</div><div style="font-size:10px;color:#8c8c8c;">🔴 <3\u5929 8\u5bb6</div></div>' +
+        '<div class="decl-progress-card"><div class="pc-icon">\u274c</div><div class="pc-label">\u7533\u62a5\u5f02\u5e38</div><div class="pc-value" style="color:#f5222d;">5</div><div style="font-size:10px;color:#8c8c8c;">\u9700\u4fee\u6b63</div></div>' +
+        '<div class="decl-progress-card"><div class="pc-icon">📊</div><div class="pc-label">\u5b8c\u6210\u7387</div><div class="pc-value" style="color:#1890ff;">' + vat.completionRate + '%</div><div style="font-size:10px;color:#8c8c8c;">\u76ee\u6807100%</div></div>';
+    document.getElementById('declProgress').innerHTML = html;
+}
+
+function renderDeclHealth() {
+    var totalPayable = 16000000;
+    var actualDeclared = 15800000;
+    var diff = ((actualDeclared - totalPayable) / totalPayable * 100).toFixed(1);
+    var diffColor = Math.abs(diff) > 5 ? '#f5222d' : (Math.abs(diff) > 2 ? '#faad14' : '#52c41a');
+    var html =
+        '<div class="decl-health-card" style="border-left:3px solid #1890ff;"><div class="hc-icon">💰</div><div class="hc-label">\u9884\u4f30\u5e94\u7f34\u589e\u503c\u7a0e</div><div class="hc-value" style="font-size:20px;">\u00a51,600\u4e07</div><div class="hc-sub">\u73af\u6bd4+5.2% \u00b7 \u540c\u6bd4-8.1%</div></div>' +
+        '<div class="decl-health-card" style="border-left:3px solid #52c41a;"><div class="hc-icon">\u2705</div><div class="hc-label">\u5b9e\u9645\u5df2\u7533\u62a5</div><div class="hc-value" style="font-size:20px;">\u00a51,580\u4e07</div><div class="hc-sub">577\u5bb6\u5df2\u5b8c\u6210</div></div>' +
+        '<div class="decl-health-card" style="border-left:3px solid ' + diffColor + ';"><div class="hc-icon">📊</div><div class="hc-label">\u5dee\u5f02\u7387</div><div class="hc-value" style="color:' + diffColor + ';">' + diff + '%</div><div class="hc-sub">\u5b9e\u9645/\u9884\u4f30\u5dee\u5f02</div></div>';
+    document.getElementById('declHealth').innerHTML = html;
+}
+
+var currentDeclFilter = 'all';
+
+function renderDeclCompanyTable(filter) {
+    currentDeclFilter = filter || 'all';
+    var data = DECLARATION_COMPANIES;
+    if (filter === 'pending') data = data.filter(function(d) { return d.status === 'pending'; });
+    else if (filter === 'abnormal') data = data.filter(function(d) { return d.status === 'abnormal'; });
+    else if (filter === 'completed') data = data.filter(function(d) { return d.status === 'completed'; });
+
+    var rows = '<tr><th>\u516c\u53f8\u540d</th><th>\u533a\u57df</th><th>\u72b6\u6001</th><th>\u5e94\u7f34\u7a0e\u989d</th><th>\u5b9e\u9645\u7f34\u7a0e</th><th>\u622a\u6b62\u65e5</th><th>\u64cd\u4f5c</th></tr>';
+    data.forEach(function(d) {
+        var statusIcon = d.status === 'completed' ? '\u2705 \u5df2\u7533\u62a5' : (d.status === 'abnormal' ? '🔴 \u5f02\u5e38' : '\u23f3 \u5f85\u7533\u62a5');
+        var statusColor = d.status === 'completed' ? '#52c41a' : (d.status === 'abnormal' ? '#f5222d' : '#faad14');
+        var actualDisplay = d.actualTax ? '\u00a5' + (d.actualTax/10000).toFixed(1) + '\u4e07' : '--';
+        rows += '<tr>' +
+            '<td style="font-weight:500;">' + d.name + '</td>' +
+            '<td>' + d.region + '</td>' +
+            '<td style="color:' + statusColor + ';font-weight:600;">' + statusIcon + '</td>' +
+            '<td>\u00a5' + (d.estimatedTax/10000).toFixed(1) + '\u4e07</td>' +
+            '<td>' + actualDisplay + '</td>' +
+            '<td>' + d.deadline + '</td>' +
+            '<td><span class="v2-action-btn" onclick=\'sendChat("\u67e5\u770b ' + d.name + ' \u7533\u62a5\u660e\u7ec6")\'>\u67e5\u770b</span></td>' +
+        '</tr>';
+    });
+    document.getElementById('declCompanyTable').innerHTML = rows;
+}
+
+function filterDeclCompanies(filter, el) {
+    document.querySelectorAll('.decl-filter-tag').forEach(function(t) { t.classList.remove('active'); });
+    if (el) el.classList.add('active');
+    renderDeclCompanyTable(filter);
+}
+
+function searchDeclCompany(val) {
+    var data = DECLARATION_COMPANIES;
+    if (!val || val.length < 1) { renderDeclCompanyTable(currentDeclFilter); return; }
+    var filtered = data.filter(function(d) { return d.name.indexOf(val) >= 0 || d.region.indexOf(val) >= 0; });
+    var rows = '<tr><th>\u516c\u53f8\u540d</th><th>\u533a\u57df</th><th>\u72b6\u6001</th><th>\u5e94\u7f34\u7a0e\u989d</th><th>\u5b9e\u9645\u7f34\u7a0e</th><th>\u622a\u6b62\u65e5</th><th>\u64cd\u4f5c</th></tr>';
+    filtered.forEach(function(d) {
+        rows += '<tr><td>' + d.name + '</td><td>' + d.region + '</td><td>' + d.status + '</td><td>\u00a5' + (d.estimatedTax/10000).toFixed(1) + '\u4e07</td><td>' + (d.actualTax ? '\u00a5' + (d.actualTax/10000).toFixed(1) + '\u4e07' : '--') + '</td><td>' + d.deadline + '</td><td><span class="v2-action-btn" onclick=\'sendChat("\u67e5\u770b ' + d.name + ' \u7533\u62a5\u660e\u7ec6")\'>\u67e5\u770b</span></td></tr>';
+    });
+    document.getElementById('declCompanyTable').innerHTML = rows;
+}
+
+function renderDeclAnomalies() {
+    var data = DECLARATION_ANOMALIES;
+    var html = '<div class="decl-section-title">🚨 \u7533\u62a5\u5f02\u5e38\u9884\u8b66</div>';
+    if (data.highRisk.length > 0) {
+        html += '<div class="decl-anomaly-block high"><div style="font-size:11px;font-weight:600;color:#f5222d;margin-bottom:4px;">🔴 \u9ad8\u5371 \u00b7 ' + data.highRisk.length + ' \u9879</div>';
+        data.highRisk.forEach(function(a) {
+            html += '<div class="decl-anomaly-item"><span>' + (a.company ? '\u2022 ' + a.type + '\uff1a' + a.company + ' - ' : '\u2022 ') + a.detail + '</span>' +
+                '<span class="sug-btn default" style="font-size:9px;padding:2px 8px;" onclick=\'sendChat("\u67e5\u770b' + (a.company || '') + '\u5f02\u5e38\u660e\u7ec6")\'>\u67e5\u770b\u660e\u7ec6</span></div>';
+        });
+        html += '</div>';
+    }
+    if (data.warning.length > 0) {
+        html += '<div class="decl-anomaly-block warn"><div style="font-size:11px;font-weight:600;color:#faad14;margin-bottom:4px;">🟠 \u9884\u8b66 \u00b7 ' + data.warning.length + ' \u9879</div>';
+        data.warning.forEach(function(a) {
+            html += '<div class="decl-anomaly-item"><span>\u2022 ' + a.detail + '</span>' +
+                '<span class="sug-btn default" style="font-size:9px;padding:2px 8px;" onclick=\'sendChat("\u67e5\u770b")\'>\u67e5\u770b</span></div>';
+        });
+        html += '</div>';
+    }
+    document.getElementById('declAnomalies').innerHTML = html;
+}
+
+function renderDeclIODiff() {
+    var data = DECL_IO_DIFF;
+    var diffPct = ((data.actualDeclared - data.totalPayable) / data.totalPayable * 100).toFixed(1);
+    var html = '<div class="decl-section-title">🔗 \u8fdb\u9500\u9879\u5dee\u5f02\u5206\u6790</div>' +
+        '<div style="display:flex;gap:16px;font-size:11px;margin-bottom:10px;background:#fafafa;border-radius:8px;padding:10px;">' +
+            '<div><span style="color:#8c8c8c;">\u96c6\u56e2\u9500\u9879\u7a0e\u5408\u8ba1\uff1a</span><strong>\u00a5' + (data.totalOutputTax/10000000).toFixed(1) + '\u4ebf</strong></div>' +
+            '<div><span style="color:#8c8c8c;">\u96c6\u56e2\u8fdb\u9879\u7a0e\u5408\u8ba1\uff1a</span><strong>\u00a5' + (data.totalInputTax/10000000).toFixed(1) + '\u4ebf</strong></div>' +
+            '<div><span style="color:#8c8c8c;">\u5e94\u7f34\u589e\u503c\u7a0e\uff1a</span><strong>\u00a5' + (data.totalPayable/10000000).toFixed(1) + '\u4ebf</strong></div>' +
+            '<div><span style="color:#8c8c8c;">\u5b9e\u9645\u5df2\u7533\u62a5\uff1a</span><strong style="color:' + (data.diff < 0 ? '#f5222d' : '#52c41a') + ';">\u00a5' + (data.actualDeclared/10000000).toFixed(1) + '\u4ebf</strong></div>' +
+            '<div><span style="color:#8c8c8c;">\u5dee\u5f02\uff1a</span><strong style="color:#f5222d;">\u00a5' + (Math.abs(data.diff)/10000).toFixed(0) + '\u4e07 ' + (data.diff < 0 ? '\u274c' : '\u2705') + '</strong></div>' +
+        '</div>';
+    if (data.abnormalCompanies.length > 0) {
+        html += '<div style="font-size:10px;font-weight:600;color:#f5222d;margin-bottom:4px;">\u5dee\u5f02\u8d85\u8fc7\u00a55\u4e07\u7684\u516c\u53f8</div>';
+        html += '<table class="decl-table"><tr><th>\u516c\u53f8\u540d</th><th>\u9500\u9879\u7a0e</th><th>\u8fdb\u9879\u7a0e</th><th>\u5dee\u5f02</th><th>\u64cd\u4f5c</th></tr>';
+        data.abnormalCompanies.forEach(function(c) {
+            html += '<tr><td>' + c.name + '</td><td>\u00a5' + (c.output/10000).toFixed(0) + '\u4e07</td><td>\u00a5' + (c.input/10000).toFixed(0) + '\u4e07</td><td style="color:#f5222d;">\u00a5' + (Math.abs(c.diff)/10000).toFixed(0) + '\u4e07</td><td><span class="v2-action-btn" onclick=\'sendChat("\u67e5\u770b ' + c.name + ' \u8fdb\u9500\u9879\u5dee\u5f02\u660e\u7ec6")\'>\u67e5\u770b\u660e\u7ec6</span></td></tr>';
+        });
+        html += '</table>';
+    }
+    document.getElementById('declIODiff').innerHTML = html;
+}
+
+function renderDeclTrends() {
+    var months = ['2026\u5e745\u6708', '2026\u5e746\u6708', '2026\u5e747\u6708'];
+    var pred = [1420, 1520, 1600];
+    var actual = [1410, 1500, 1580];
+    var maxVal = 1800;
+    var html = '<div class="decl-section-title">📈 \u6708\u5ea6\u8d8b\u52bf\u5bf9\u6bd4 <span style="font-size:10px;font-weight:400;color:#8c8c8c;">\u84dd=\u7cfb\u7edf\u9884\u6d4b \u7eff=\u5b9e\u9645\u5df2\u7533\u62a5</span></div>' +
+        '<div class="decl-trend-chart">';
+    for (var i = 0; i < months.length; i++) {
+        var predH = Math.round(pred[i] / maxVal * 100);
+        var actH = actual[i] ? Math.round(actual[i] / maxVal * 100) : 0;
+        html += '<div class="decl-trend-group">' +
+            '<div class="decl-trend-bar pred" style="height:' + predH + 'px;"></div>' +
+            '<div class="decl-trend-bar actual" style="height:' + actH + 'px;"></div>' +
+            '<div class="decl-trend-label">' + months[i] + '</div>' +
+            '<div style="font-size:8px;color:#1890ff;">\u00a5' + pred[i] + '\u4e07</div>' +
+            (actual[i] ? '<div style="font-size:8px;color:#52c41a;">\u00a5' + actual[i] + '\u4e07</div>' : '') +
+        '</div>';
+    }
+    html += '</div>';
+    document.getElementById('declTrends').innerHTML = html;
+}
+
+// ===== Dashboard v2 =====
+function renderDashboard() {
+    renderHealthBanner();
+    renderTaxCalendar();
+    renderDimensions();
+    renderTodayTasks();
+    renderRegionMap();
+    renderTrends();
+}
+
+function renderHealthBanner() {
+    var o = INVOICE_OVERVIEW;
+    var score = 74;
+    var level = 'B';
+    var pendingTotal = 12;
+    var pendingEmerg = 2;
+    var color = '#faad14';
+    document.getElementById('dashHealthScore').innerHTML = level + '\u7ea7 ' + score + '\u5206';
+    document.getElementById('dashHealthScore').style.color = color;
+    document.getElementById('dashPendingCount').innerHTML = pendingTotal + ' \u9879 <span style="font-size:12px;color:#f5222d;">\u25cf ' + pendingEmerg + '</span>';
+    document.getElementById('dashDeadline').innerHTML = o.deadlineDays + ' \u5929';
+    document.getElementById('dashDeadline').style.color = o.deadlineDays < 7 ? '#f5222d' : (o.deadlineDays < 15 ? '#faad14' : '#52c41a');
+    document.getElementById('dashTrend').innerHTML = '\u8f83\u4e0a\u5468 \u2191 2\u5206 \u00b7 \u9500\u9879\u62d6\u540e\u817f \u2193';
+}
+
+
+
+function renderTaxCalendar() {
+    var data = TAX_PERIOD;
+    var today = new Date();
+    var dateStr = today.getFullYear() + '年' + (today.getMonth() + 1) + '月' + today.getDate() + '日';
+    var vat = data.taxes[0], personal = data.taxes[1], corp = data.taxes[2];
+    var daysLeft = vat.daysLeft;
+    var remainColor = daysLeft < 7 ? '#f5222d' : (daysLeft < 15 ? '#faad14' : '#52c41a');
+    var html =
+        '<div class="cw-left">' +
+            '<div class="cw-icon">📅</div>' +
+            '<div class="cw-info">' +
+                '<div class="cw-title">征期信息 <span style="font-size:10px;font-weight:400;color:#bfbfbf;">点击查看详细日历</span></div>' +
+                '<div class="cw-sub">' + dateStr + ' · ' + vat.type + '截止 ' + vat.deadline + '</div>' +
+            '</div>' +
+        '</div>' +
+        '<div class="cw-deadline">' +
+            '<div class="cw-dl-item"><div class="cw-dl-name">' + vat.type + '</div><div class="cw-dl-date">' + vat.deadline.split('-')[2] + '日</div><div class="cw-dl-remain" style="color:' + remainColor + ';">剩' + daysLeft + '天</div></div>' +
+            '<div class="cw-dl-item"><div class="cw-dl-name">' + personal.type + '</div><div class="cw-dl-date">' + personal.deadline.split('-')[2] + '日</div><div class="cw-dl-remain" style="color:' + remainColor + ';">剩' + personal.daysLeft + '天</div></div>' +
+            '<div class="cw-dl-item"><div class="cw-dl-name">' + corp.type + '</div><div class="cw-dl-date">' + corp.deadline.split('-')[2] + '日</div><div class="cw-dl-remain" style="color:' + (corp.daysLeft < 7 ? '#f5222d' : (corp.daysLeft < 15 ? '#faad14' : '#52c41a')) + ';">剩' + corp.daysLeft + '天</div></div>' +
+        '</div>' +
+        '<div class="cw-arrow">›</div>';
+    document.getElementById('dashTaxCalendar').innerHTML = html;
+}
+
+function showFullCalendar() {
+    var data = TAX_PERIOD;
+    var year = 2026, month = 6;
+    var firstDay = new Date(year, month, 1).getDay();
+    var daysInMonth = new Date(year, month + 1, 0).getDate();
+    var prevMonthDays = new Date(year, month, 0).getDate();
+    var weekdays = '日一二三四五六'.split('');
+    var now = new Date();
+    var today = now.getDate();
+    var events = {};
+    data.taxes.forEach(function(t) {
+        var day = parseInt(t.deadline.split('-')[2], 10);
+        if (!events[day]) events[day] = [];
+        events[day].push(t.type);
+    });
+    var calHtml = '';
+    weekdays.forEach(function(w) { calHtml += '<div class="cal-weekday">' + w + '</div>'; });
+    var startDay = firstDay === 0 ? 6 : firstDay - 1;
+    for (var i = startDay - 1; i >= 0; i--) {
+        calHtml += '<div class="cal-day other-month">' + (prevMonthDays - i) + '</div>';
+    }
+    for (var d = 1; d <= daysInMonth; d++) {
+        var cls = 'cal-day';
+        if (d === today) cls += ' today';
+        if (events[d]) cls += ' event';
+        calHtml += '<div class="' + cls + '">' + d;
+        if (events[d]) {
+            var dotType = events[d].length > 1 ? 'multi' : (events[d][0] === '增值税' ? 'vat' : (events[d][0] === '个人所得税' ? 'personal' : 'corp'));
+            calHtml += '<div class="cd-dot ' + dotType + '"></div>';
+        }
+        calHtml += '</div>';
+    }
+    var modalOverlay = document.createElement('div');
+    modalOverlay.className = 'cal-modal-overlay';
+    modalOverlay.id = 'calModalOverlay';
+    modalOverlay.onclick = function(e) { if (e.target === this) this.remove(); };
+    modalOverlay.innerHTML =
+        '<div class="cal-modal">' +
+            '<div class="cal-modal-header">' +
+                '<div class="cal-modal-title">📅 征期日历 &nbsp;2026年7月</div>' +
+                '<button class="cal-modal-close" onclick="document.getElementById(\u0027calModalOverlay\u0027).remove()">✕</button>' +
+            '</div>' +
+            '<div class="cal-grid">' + calHtml + '</div>' +
+            '<div class="cal-legend">' +
+                '<span><span class="dot" style="background:#1890ff;"></span>增值税</span>' +
+                '<span><span class="dot" style="background:#faad14;"></span>个税</span>' +
+                '<span><span class="dot" style="background:#52c41a;"></span>企税</span>' +
+                '<span><span class="dot" style="background:#f5222d;"></span>多税种同日</span>' +
+            '</div>' +
+        '</div>';
+    document.body.appendChild(modalOverlay);
+}
+function renderDimensions() {
+    var dims = [
+        { id: '\u8fdb\u9879', icon: '📄', name: '\u8fdb\u9879\u5065\u5eb7\u5ea6', score: 65, color: '#faad14', level: '🟠 \u5173\u6ce8', abnormal: '3\u9879\u5f02\u5e38', detail: ['\u8ba4\u8bc1\u738741.4%\u504f\u4f4e', '\u8fc7\u671f\u635f\u5931\u00a5315\u4e07'] },
+        { id: '\u9500\u9879', icon: '📤', name: '\u9500\u9879\u5065\u5eb7\u5ea6', score: 48, color: '#f5222d', level: '🔴 \u98ce\u9669', abnormal: '5\u9879\u5f02\u5e38', detail: ['\u865a\u5f00\u98ce\u96692\u5bb6\u9ad8\u5371', '\u5185\u90e8\u5bf93\u7b14\u5dee\u5f02'] },
+        { id: '\u7533\u62a5', icon: '📋', name: '\u7533\u62a5\u5065\u5eb7\u5ea6', score: 82, color: '#52c41a', level: '🟢 \u826f\u597d', abnormal: '1\u9879\u5f02\u5e38', detail: ['\u8ddd\u622a\u6b6212\u5929'] },
+        { id: '\u98ce\u9669', icon: '\u26a0\ufe0f', name: '\u5408\u89c4\u5065\u5eb7\u5ea6', score: 59, color: '#fa8c16', level: '🟠 \u5173\u6ce8', abnormal: '45\u9879\u5f02\u5e38', detail: ['45\u5bb6\u5f02\u5e38\u516c\u53f8', '\u5904\u7f6e\u7387\u4ec526.7%'] },
+    ];
+    var html = '';
+    dims.forEach(function(d) {
+        html += '<div class="dash-dim-card" style="border-left:3px solid ' + d.color + ';" onclick=\'switchModule("' + d.id + '", document.querySelector("[data-module=\\"' + d.id + '\\"]"))\'>' +
+            '<div class="dc-header"><span class="dc-icon">' + d.icon + '</span><span class="dc-level" style="background:' + d.color + '20;color:' + d.color + ';">' + d.level + '</span></div>' +
+            '<div class="dc-score" style="color:' + d.color + ';">' + d.score + '</div>' +
+            '<div style="font-size:11px;color:#333;font-weight:500;">' + d.name + '</div>' +
+            '<div class="dc-abnormal">' + d.abnormal + '</div>' +
+            d.detail.map(function(dt) { return '<div style="font-size:9px;color:#bfbfbf;">\u2022 ' + dt + '</div>'; }).join('') +
+            '<div class="dc-link" style="color:' + d.color + ';">\u70b9\u51fb\u67e5\u770b\u8be6\u60c5 \u2192</div>' +
+        '</div>';
+    });
+    document.getElementById('dashDimensions').innerHTML = html;
+}
+
+function renderTodayTasks() {
+    var html =
+        '<div class="dash-task-emergency"><div style="font-size:11px;font-weight:600;color:#f5222d;margin-bottom:4px;">🔴 \u7d27\u6025 \u00b7 2 \u9879</div>' +
+        '<div class="dash-task-item"><div class="dash-task-left"><span class="dash-task-icon">🚨</span><div><div class="dash-task-title">\u865a\u5f00\u98ce\u9669\uff1a2\u5bb6\u95e8\u5e97\u8bc4\u5206>80</div><div class="dash-task-detail">\u534e\u4e2d\u7b2c1\u5206\u516c\u53f8(92\u5206) \u00b7 \u534e\u5357\u6df1\u5733\u5206\u516c\u53f8(85\u5206)</div></div></div>' +
+        '<span class="sug-btn default dash-task-btn" onclick=\'switchModule("\u9500\u9879", document.querySelector("[data-module=\\"\u9500\u9879\\"]"))\'>\u53bb\u9500\u9879\u7ba1\u7406\u5904\u7406 \u2192</span></div>' +
+        '</div>' +
+        '<div class="dash-task-watch"><div style="font-size:11px;font-weight:600;color:#faad14;margin-bottom:4px;">🟠 \u5173\u6ce8 \u00b7 3 \u9879</div>' +
+        '<div class="dash-task-item"><div class="dash-task-left"><span class="dash-task-icon">📄</span><div><div class="dash-task-title">\u8fdb\u9879\u8ba4\u8bc1\uff1a\u8ddd\u622a\u6b6212\u5929\uff0c\u65e5\u5747\u9700\u8ba4\u8bc18.7\u4e07\u5f20</div><div class="dash-task-detail">\u5f53\u524d\u65e5\u5747\u4ec52.3\u4e07\u5f20\uff0c\u8fdb\u5ea6\u843d\u540e</div></div></div>' +
+        '<span class="sug-btn default dash-task-btn" onclick=\'switchModule("\u8fdb\u9879", document.querySelector("[data-module=\\"\u8fdb\u9879\\"]"))\'>\u53bb\u8fdb\u9879\u7ba1\u7406\u5904\u7406 \u2192</span></div>' +
+        '<div class="dash-task-item"><div class="dash-task-left"><span class="dash-task-icon">🔴</span><div><div class="dash-task-title">\u7ea2\u5b57\u53d1\u7968\uff1a\u534e\u4e2d\u533a\u7ea2\u5b57\u73878.7%\u8d85\u884c\u4e1a\u57fa\u51c63%</div><div class="dash-task-detail">\u672c\u6708\u5df223\u5f20\uff0c15\u5f20\u4e3a\u64cd\u4f5c\u5931\u8bef</div></div></div>' +
+        '<span class="sug-btn default dash-task-btn" onclick=\'switchModule("\u9500\u9879", document.querySelector("[data-module=\\"\u9500\u9879\\"]"))\'>\u53bb\u9500\u9879\u7ba1\u7406\u5904\u7406 \u2192</span></div>' +
+        '<div class="dash-task-item"><div class="dash-task-left"><span class="dash-task-icon">\u26a0\ufe0f</span><div><div class="dash-task-title">\u5408\u89c4\u5f02\u5e38\uff1a45\u5bb6\u516c\u53f8\u5f02\u5e38\uff0c3\u5bb6\u9ad8\u98ce\u9669</div><div class="dash-task-detail">\u9884\u4f30\u635f\u5931~640\u4e07\uff0c\u5904\u7f6e\u7387\u4ec526.7%</div></div></div>' +
+        '<span class="sug-btn default dash-task-btn" onclick=\'switchModule("\u98ce\u9669", document.querySelector("[data-module=\\"\u98ce\u9669\\"]"))\'>\u53bb\u98ce\u9669\u76d1\u63a7\u5904\u7406 \u2192</span></div>' +
+        '</div>';
+    document.getElementById('dashTodayBody').innerHTML = html;
+}
+
+function renderRegionMap() {
+    var regions = [
+        { name: '\u534e\u4e1c\u533a\u57df', level: '🟢', label: '\u826f\u597d', bg: '#f6ffed', border: '#b7eb8f', abnormal: 3, cert: 92 },
+        { name: '\u534e\u5357\u533a\u57df', level: '🟠', label: '\u5173\u6ce8', bg: '#fffbe6', border: '#ffe58f', abnormal: 8, cert: 67 },
+        { name: '\u534e\u5317\u533a\u57df', level: '🟢', label: '\u826f\u597d', bg: '#f6ffed', border: '#b7eb8f', abnormal: 7, cert: 85 },
+        { name: '\u534e\u4e2d\u533a\u57df', level: '🔴', label: '\u98ce\u9669', bg: '#fff1f0', border: '#ffccc7', abnormal: 23, cert: 45 },
+        { name: '\u6295\u8d44\u516c\u53f8', level: '🟢', label: '\u826f\u597d', bg: '#f6ffed', border: '#b7eb8f', abnormal: 4, cert: 98 },
+    ];
+    var html = '';
+    regions.forEach(function(r) {
+        html += '<div class="dash-region-card" style="background:' + r.bg + ';border:1px solid ' + r.border + ';" onclick=\'switchModule("\u98ce\u9669", document.querySelector("[data-module=\\"\u98ce\u9669\\"]"))\'>' +
+            '<div class="rc-level">' + r.level + '</div>' +
+            '<div class="rc-name">' + r.name + '</div>' +
+            '<div class="rc-stat">\u5f02\u5e38 ' + r.abnormal + '\u5bb6 \u00b7 \u8ba4\u8bc1\u7387 ' + r.cert + '%</div>' +
+            '<div class="rc-link" style="color:#1890ff;">\u67e5\u770b\u8be6\u60c5 \u2192</div>' +
+        '</div>';
+    });
+    document.getElementById('dashRegionBody').innerHTML = html;
+}
+
+function renderTrends() {
+    var trends = [
+        { name: '\u8ba4\u8bc1\u7387\u8d8b\u52bf', values: [40.2, 40.4, 40.7, 40.9, 41.1, 41.3, 41.4], color: '#1890ff', summary: '\u7f13\u6162\u4e0a\u5347 \u00b7 \u65e5\u5747+0.2%', maxVal: 50 },
+        { name: '\u5408\u89c4\u7387\u8d8b\u52bf', values: [58.5, 58.8, 59.0, 59.3, 59.5, 59.7, 59.9], color: '#52c41a', summary: '\u7f13\u6162\u4e0a\u5347 \u00b7 \u672c\u5468\u5904\u74063\u5bb6', maxVal: 70 },
+        { name: '\u7ea2\u5b57\u53d1\u7968\u7387\u8d8b\u52bf', values: [3.1, 3.1, 3.2, 3.2, 3.2, 3.2, 3.2], color: '#f5222d', summary: '\u6301\u7eed\u8d85\u57fa\u51c63%', maxVal: 5 },
+    ];
+    var html = '';
+    trends.forEach(function(t) {
+        html += '<div class="dash-trend-card"><div class="tc-title">' + t.name + '</div>' +
+            '<div class="tc-chart">';
+        t.values.forEach(function(v) {
+            var h = Math.round(v / t.maxVal * 36);
+            html += '<div class="tc-bar" style="height:' + Math.max(4, h) + 'px;background:' + t.color + ';"></div>';
+        });
+        html += '</div><div class="tc-summary" style="color:' + t.color + ';">' + t.summary + '</div></div>';
+    });
+    document.getElementById('dashTrendBody').innerHTML = html;
+}
+
+// ===== Sales Invoice Module v2 - Render Functions =====
+function renderSalesModule() {
+    renderSalesTasks();
+    renderSalesHealth();
+    renderFraudRisk();
+    renderRedInvoice();
+    renderInternalTransactions();
+    renderPlatformRecon();
+    renderCompliance();
+    renderSalesSuggestions();
+}
+
+function renderSalesTasks() {
+    var data = SALES_TODAY_TASKS;
+    var html =
+        '<div class="sls-tasks-header">' +
+            '<span class="sls-tasks-title">🎯 \u4eca\u65e5\u5bf9\u8d26\u4e2d\u5fc3</span>' +
+            '<span class="sls-tasks-subtitle">\u8ddd\u6708\u7ed3\u8fd8\u6709 15 \u5929</span>' +
+        '</div>';
+    if (data.internalDiff.length > 0) {
+        html += '<div class="sls-task-group"><div class="sls-task-group-title" style="color:#f5222d;">🔴 \u5185\u90e8\u5173\u8054\u4ea4\u6613\u5bf9\u8d26\u5f02\u5e38 \u00b7 ' + data.internalDiff.length + ' \u9879</div>';
+        data.internalDiff.forEach(function(d) {
+            html += '<div class="sls-task-item"><div class="sls-task-row1"><span class="sls-task-name">' + d.fromCompany + '\u2192' + d.toCompany + '</span><span class="sls-task-amount">\u5e94\u6536\u00a5' + (d.sentAmount/10000).toFixed(0) + '\u4e07 \u5b9e\u6536\u00a5' + (d.receivedAmount/10000).toFixed(0) + '\u4e07 \u5dee\u5f02\u00a5' + (Math.abs(d.diff)/10000).toFixed(0) + '\u4e07</span></div>' +
+                '<div class="sls-task-row2">' + d.diffInvoiceCount + '\u5f20\u53d1\u7968\u5df2\u5f00\u672a\u6536</div>' +
+                '<div class="sls-task-actions">' +
+                    '<span class="sug-btn default" onclick="showSalesDiffDetail()">📊 \u751f\u6210\u5dee\u5f02\u62a5\u544a</span>' +
+                    '<span class="sug-btn default" onclick="sendChat(\'\u53d1\u9001\u50ac\u529e\u901a\u77e5\')">📧 \u53d1\u9001\u50ac\u529e\u901a\u77e5</span>' +
+                '</div></div>';
+        });
+        html += '</div>';
+    }
+    if (data.platformDiff.length > 0) {
+        html += '<div class="sls-task-group"><div class="sls-task-group-title" style="color:#faad14;">🟠 \u5e73\u53f0\u6570\u636e\u5dee\u5f02 \u00b7 ' + data.platformDiff.length + ' \u9879</div>';
+        data.platformDiff.forEach(function(p) {
+            html += '<div class="sls-task-item"><div class="sls-task-row1"><span class="sls-task-name">📱 ' + p.platform + '\u5e73\u53f0</span><span style="font-size:12px;color:#f5222d;font-weight:600;">\u5e73\u53f0\u00a5' + (p.platformAmount/10000).toFixed(0) + '\u4e07 vs \u7cfb\u7edf\u00a5' + (p.systemAmount/10000).toFixed(0) + '\u4e07 \u274c</span></div>' +
+                '<div class="sls-task-row2">\u5dee\u5f02\u00a5' + (p.diff/10000).toFixed(0) + '\u4e07 \u00b7 \u6d89\u53ca' + p.storeCount + '\u5bb6\u95e8\u5e97</div>' +
+                '<div class="sls-task-actions">' +
+                    '<span class="sug-btn default" onclick="showPlatformDetail(\'' + p.platform + '\')">\u26a1 \u4e00\u952e\u5bf9\u8d26</span>' +
+                    '<span class="sug-btn default" onclick="showPlatformDetail(\'' + p.platform + '\')">📍 \u67e5\u770b\u5dee\u5f02\u95e8\u5e97\u660e\u7ec6</span>' +
+                '</div></div>';
+        });
+        html += '</div>';
+    }
+    html += '<div class="sls-task-group"><div class="sls-task-group-title" style="color:#52c41a;">\u2705 \u5df2\u5bf9\u8d26</div><div style="padding:4px 0;font-size:10px;color:#bfbfbf;text-align:center;">\u6682\u65e0\u5df2\u5bf9\u8d26\u9879</div></div>';
+    document.getElementById('salesTasksContainer').innerHTML = html;
+}
+
+function renderSalesHealth() {
+    var o = SALES_OVERVIEW;
+    document.getElementById('salesHealthOverview').innerHTML =
+        '<div class="sls-health-card" style="border-left:3px solid #1890ff;"><div class="hc-icon">📤</div><div class="hc-label">\u5f00\u7968\u603b\u989d</div><div class="hc-value" style="font-size:22px;color:#333;">' + (o.totalAmount/100000000).toFixed(1) + '\u4ebf</div><div class="hc-sub">\u540c\u6bd4 ' + o.yoyGrowth + '</div></div>' +
+        '<div class="sls-health-card" style="border-left:3px solid ' + (o.internalReconRate < 60 ? '#f5222d' : (o.internalReconRate < 80 ? '#faad14' : '#52c41a')) + ';"><div class="hc-icon">🔗</div><div class="hc-label">\u5185\u90e8\u5bf9\u8d26\u7387</div><div class="hc-value" style="color:' + (o.internalReconRate < 60 ? '#f5222d' : (o.internalReconRate < 80 ? '#faad14' : '#52c41a')) + ';">' + o.internalReconRate + '%</div><div class="hc-sub">\u5df2\u5bf9\u8d26' + o.internalReconDone + '/' + o.internalReconTotal + '\u6761\u94fe\u8def</div></div>' +
+        '<div class="sls-health-card" style="border-left:3px solid ' + (o.redInvoiceRate > o.industryBenchmark ? '#f5222d' : '#52c41a') + ';"><div class="hc-icon">🚨</div><div class="hc-label">\u7ea2\u5b57\u53d1\u7968\u7387</div><div class="hc-value" style="color:' + (o.redInvoiceRate > o.industryBenchmark ? '#f5222d' : '#52c41a') + ';">' + o.redInvoiceRate + '%</div><div class="hc-sub">\u884c\u4e1a\u57fa\u51c6 ' + o.industryBenchmark + '%</div></div>' +
+        '<div class="sls-health-card" style="border-left:3px solid ' + (o.platformReconRate < 50 ? '#f5222d' : (o.platformReconRate < 70 ? '#faad14' : '#52c41a')) + ';"><div class="hc-icon">📱</div><div class="hc-label">\u5e73\u53f0\u5bf9\u8d26\u7387</div><div class="hc-value" style="color:' + (o.platformReconRate < 50 ? '#f5222d' : '#faad14') + ';">' + o.platformReconRate + '%</div><div class="hc-sub">2\u4e2a\u5e73\u53f0\u5f85\u5bf9\u8d26</div></div>';
+}
+
+function renderFraudRisk() {
+    var data = FRAUD_RISK_DATA;
+    var total = data.highRisk.length + data.warning.length;
+    var html = '<div class="sls-fraud-title">🚨 \u865a\u5f00\u98ce\u9669\u76d1\u63a7 <span style="font-size:10px;font-weight:400;color:#8c8c8c;">\u00b7 \u672c\u6708\u5df2\u8bc6\u522b ' + total + ' \u5bb6\u5f02\u5e38\u95e8\u5e97</span></div>' +
+        '<div class="sls-fraud-sub">AI\u626b\u63cf ' + data.totalCompanies + ' \u5bb6\u516c\u53f8 \u00b7 \u626b\u63cf\u65e5\u671f\uff1a' + data.scanDate + '</div>';
+    if (data.highRisk.length > 0) {
+        html += '<div class="sls-fraud-block high"><div style="font-size:11px;font-weight:600;color:#f5222d;margin-bottom:6px;">🔴 \u9ad8\u5371 \u00b7 ' + data.highRisk.length + ' \u5bb6</div>';
+        data.highRisk.forEach(function(f) {
+            html += '<div class="sls-fraud-item"><div class="fi-header"><span class="fi-company">' + f.companyName + '</span><span class="fi-score high">' + f.riskScore + '</span></div>';
+            f.features.forEach(function(feat) {
+                html += '<div class="fi-feature"><span class="fi-bullet"></span>' + feat.name + '\uff1a' + feat.detail + '</div>';
+            });
+            html += '<div class="fi-actions">' +
+                '<span class="sug-btn primary" onclick="sendChat(\'\u751f\u6210\u6838\u67e5\u5de5\u5355\')">📧 \u751f\u6210\u6838\u67e5\u5de5\u5355</span>' +
+                '<span class="sug-btn default" onclick="showFraudDetail()">📍 \u4e0b\u94bb\u67e5\u770b</span>' +
+            '</div></div>';
+        });
+        html += '</div>';
+    }
+    if (data.warning.length > 0) {
+        html += '<div class="sls-fraud-block warn"><div style="font-size:11px;font-weight:600;color:#faad14;margin-bottom:6px;">🟠 \u9884\u8b66 \u00b7 ' + data.warning.length + ' \u5bb6</div>';
+        data.warning.forEach(function(f) {
+            html += '<div class="sls-fraud-item"><div class="fi-header"><span class="fi-company">' + f.companyName + '</span><span class="fi-score mid">' + f.riskScore + '</span></div>';
+            f.features.forEach(function(feat) {
+                html += '<div class="fi-feature"><span class="fi-bullet" style="background:#faad14;"></span>' + feat.name + '\uff1a' + feat.detail + '</div>';
+            });
+            html += '<div class="fi-actions">' +
+                '<span class="sug-btn default" onclick="sendChat(\'\u53d1\u9001\u98ce\u9669\u63d0\u9192\')">📧 \u53d1\u9001\u98ce\u9669\u63d0\u9192</span>' +
+                '<span class="sug-btn default" onclick="showFraudDetail()">📍 \u4e0b\u94bb\u67e5\u770b</span>' +
+            '</div></div>';
+        });
+        html += '</div>';
+    }
+    document.getElementById('fraudRiskMonitoring').innerHTML = html;
+}
+
+function renderRedInvoice() {
+    var data = RED_INVOICE_DATA;
+    var html = '<div class="sls-red-title"><span>🔴 \u7ea2\u5b57\u53d1\u7968\u76d1\u63a7 <span style="font-size:10px;font-weight:400;color:#8c8c8c;">\u672c\u6708\u7ea2\u5b57\u53d1\u7968\u7387 ' + data.monthlyRate + '%\uff08\u884c\u4e1a\u57fa\u51c6 ' + data.industryBenchmark + '%\uff09</span></span>' +
+        '<span class="sls-red-nav" onclick="sendChat(\'\u67e5\u770b\u5b8c\u6574\u7ea2\u5b57\u53d1\u7968\u5206\u6790\')">📊 \u5b8c\u6574\u5206\u6790 \u2192 \u98ce\u9669\u76d1\u63a7</span></div>';
+    data.topAbnormal.forEach(function(r) {
+        html += '<div class="sls-red-item" style="border-left-color:' + (r.rate > data.industryBenchmark ? '#f5222d' : '#faad14') + ';">' +
+            '<div class="ri-left"><div class="ri-name">' + r.companyName + '</div><div class="ri-stat">\u7ea2\u5b57 ' + r.count + '\u5f20 | \u5360\u6bd4 ' + r.rate + '% | \u64cd\u4f5c\u5931\u8bef ' + r.operationError + ' | \u6b63\u5e38\u9000\u8d27 ' + r.normalReturn + '</div></div>' +
+            '<div class="ri-actions">' +
+                (r.rate > 4 ? '<span class="sug-btn default" onclick="sendChat(\'\u53d1\u89c4\u8303\u63d0\u9192\')">📧 \u53d1\u89c4\u8303\u63d0\u9192</span>' : '') +
+                '<span class="sug-btn default" onclick="showRedInvoiceDetail()">📍 \u4e0b\u94bb</span>' +
+            '</div></div>';
+    });
+    html += '<div style="margin-top:10px;font-size:10px;color:#8c8c8c;">📈 \u6708\u5ea6\u8d8b\u52bf\uff1a';
+    data.monthlyTrend.forEach(function(m) {
+        html += '<span style="margin-right:8px;color:' + (m.rate > data.industryBenchmark ? '#f5222d' : '#52c41a') + ';">' + m.month + ' ' + m.rate + '%</span>';
+    });
+    html += '</div>';
+    document.getElementById('redInvoiceMonitoring').innerHTML = html;
+}
+
+function renderInternalTransactions() {
+    var data = INTERNAL_TRANSACTIONS;
+    var html = '<div class="sls-internal-title"><span>🔗 \u5185\u90e8\u5173\u8054\u4ea4\u6613\u8ffd\u8e2a <span style="font-size:10px;font-weight:400;color:#8c8c8c;">\u00b7 \u672c\u6708\u5bf9\u8d26\u7387 ' + data.reconRate + '%</span></span>' +
+        '<span class="sls-red-nav" onclick="showSalesDiffDetail()">📊 \u751f\u6210\u5bf9\u8d26\u62a5\u544a</span></div>' +
+        '<div class="sls-internal-grid"><div class="sls-internal-col"><div class="sls-internal-flow"><div style="font-size:10px;font-weight:600;margin-bottom:4px;">\u4ea4\u6613\u6d41\u5411\u603b\u89c8</div>';
+    data.links.forEach(function(l) {
+        html += '<div class="sls-flow-item"><span>' + l.fromCompany + ' \u2192 ' + l.toCompany + '</span><span>' + (l.status === '\u2705' ? '<span style="color:#52c41a;">\u00a5' + (l.sentAmount/10000).toFixed(0) + '\u4e07 \u2705</span>' : '<span style="color:#f5222d;">\u00a5' + (l.sentAmount/10000).toFixed(0) + '\u4e07 \u274c</span>') + '</span></div>';
+    });
+    html += '<div style="font-size:9px;color:#bfbfbf;margin-top:4px;">\u5171 ' + data.totalLinks + ' \u6761\u94fe\u8def</div></div></div>' +
+        '<div class="sls-internal-col"><div style="font-size:10px;font-weight:600;color:#f5222d;margin-bottom:4px;">🔴 \u5bf9\u8d26\u5dee\u5f02\u660e\u7ec6</div>';
+    data.diffs.forEach(function(d) {
+        html += '<div class="sls-internal-diff"><div class="sls-diff-item"><span>' + d.fromCompany + '\u2192' + d.toCompany + '</span> <span style="float:right;color:#f5222d;font-weight:600;">\u00a5' + (Math.abs(d.diff)/10000).toFixed(0) + '\u4e07</span></div>' +
+            '<div class="sls-diff-item" style="font-size:9px;color:#8c8c8c;">' + (d.diffSource || '') + '</div>' +
+            '<div class="sls-diff-actions">' +
+                '<span class="sug-btn default" style="font-size:9px;padding:2px 6px;" onclick="showSalesDiffDetail()">📍 \u67e5\u770b\u5dee\u5f02</span>' +
+                '<span class="sug-btn default" style="font-size:9px;padding:2px 6px;" onclick="sendChat(\'\u53d1\u9001\u50ac\u529e\')">📧 \u50ac\u529e</span>' +
+            '</div></div>';
+    });
+    html += '</div></div>';
+    document.getElementById('internalTransactions').innerHTML = html;
+}
+
+function renderPlatformRecon() {
+    var data = PLATFORM_RECON_DATA;
+    var html = '<div class="sls-platform-title">📋 \u5e73\u53f0\u9500\u9879\u5bf9\u8d26</div>';
+    data.forEach(function(p) {
+        html += '<div style="background:#fafafa;border-radius:8px;padding:10px;margin-bottom:8px;">' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;"><span style="font-size:12px;font-weight:600;">📱 ' + p.platform + '</span><span style="font-size:12px;color:#8c8c8c;">\u672c\u6708 ' + (p.platformAmount/10000).toFixed(0) + '\u4e07</span></div>' +
+            '<div style="display:flex;gap:16px;font-size:11px;margin-bottom:6px;">' +
+                '<span>\u5e73\u53f0\uff1a<strong>\u00a5' + (p.platformAmount/10000).toFixed(0) + '\u4e07</strong></span>' +
+                '<span>\u7cfb\u7edf\uff1a<strong style="color:#f5222d;">\u00a5' + (p.systemAmount/10000).toFixed(0) + '\u4e07</strong></span>' +
+                '<span>\u5dee\u5f02\uff1a<strong style="color:#f5222d;">\u00a5' + (p.diff/10000).toFixed(0) + '\u4e07</strong></span>' +
+            '</div>' +
+            '<div style="display:flex;gap:6px;">' +
+                '<span class="sug-btn default" onclick="showPlatformDetail(\'' + p.platform + '\')">📊 \u67e5\u770b\u5dee\u5f02\u660e\u7ec6</span>' +
+            '</div></div>';
+    });
+    document.getElementById('platformReconciliation').innerHTML = html;
+}
+
+function renderCompliance() {
+    var data = COMPLIANCE_DATA;
+    var html = '<div class="sls-compliance-title">🏪 \u5f00\u7968\u5408\u89c4\u76d1\u63a7 <span style="font-size:10px;font-weight:400;color:#8c8c8c;">\u00b7 \u626b\u63cf ' + data.scannedCount.toLocaleString() + ' \u5f20 \u00b7 \u5f02\u5e38 ' + data.abnormalCount + ' \u5f20</span></div>';
+    if (data.categoryDeviation.count > 0) {
+        html += '<div class="sls-comp-item"><div class="ci-text">📋 \u54c1\u540d\u504f\u79bb \u00b7 ' + data.categoryDeviation.count + ' \u5f20</div>';
+        data.categoryDeviation.items.forEach(function(item) {
+            html += '<div class="ci-detail">\u2022 ' + item.issue + ' ' + item.count + '\u5f20 \u00b7 ' + item.stores + '</div>';
+        });
+        html += '<div class="ci-actions"><span class="sug-btn default" onclick="sendChat(\'\u53d1\u89c4\u8303\u63d0\u9192\')">📧 \u53d1\u89c4\u8303\u63d0\u9192</span></div></div>';
+    }
+    if (data.taxRateAbnormal.count > 0) {
+        html += '<div class="sls-comp-item"><div class="ci-text">📋 \u7a0e\u7387\u5f02\u5e38 \u00b7 ' + data.taxRateAbnormal.count + ' \u5f20</div>';
+        data.taxRateAbnormal.items.forEach(function(item) {
+            html += '<div class="ci-detail">\u2022 ' + item.issue + ' ' + item.count + '\u5f20 \u00b7 ' + item.stores + '</div>';
+        });
+        html += '<div class="ci-actions"><span class="sug-btn default" onclick="sendChat(\'\u53d1\u89c4\u8303\u63d0\u9192\')">📧 \u53d1\u89c4\u8303\u63d0\u9192</span></div></div>';
+    }
+    if (data.duplicateInvoices.count > 0) {
+        html += '<div class="sls-comp-item"><div class="ci-text">📋 \u91cd\u590d\u5f00\u7968 \u00b7 ' + data.duplicateInvoices.count + ' \u7ec4</div>';
+        data.duplicateInvoices.items.forEach(function(item) {
+            html += '<div class="ci-detail">\u2022 ' + item.invoice1 + ' vs ' + item.invoice2 + ' \u00b7 ' + item.store + '</div>';
+        });
+        html += '<div class="ci-actions"><span class="sug-btn default" onclick="sendChat(\'\u53d1\u9001\u6838\u67e5\u901a\u77e5\')">📧 \u53d1\u6838\u67e5\u901a\u77e5</span></div></div>';
+    }
+    document.getElementById('complianceMonitoring').innerHTML = html;
+}
+
+function renderSalesSuggestions() {
+    var suggestions = [
+        { priority: 'p0', icon: '🚨', text: '4\u5bb6\u95e8\u5e97\u865a\u5f00\u98ce\u9669\u8bc4\u5206>70\uff0c\u5efa\u8bae\u7acb\u5373\u6838\u67e5', btn1: '\u4e00\u952e\u751f\u6210\u6838\u67e5\u5de5\u5355', btn1Action: '\u751f\u6210\u6838\u67e5\u5de5\u5355' },
+        { priority: 'p0', icon: '🔗', text: '\u5185\u90e8\u5173\u8054\u4ea4\u66133\u7b14\u5bf9\u4e0d\u4e0a\uff0c\u5dee\u5f02\u00a526\u4e07', btn1: '\u751f\u6210\u5dee\u5f02\u62a5\u544a', btn1Action: '\u751f\u6210\u5dee\u5f02\u62a5\u544a', btn2: '\u53d1\u9001\u50ac\u529e\u901a\u77e5', btn2Action: '\u53d1\u9001\u50ac\u529e\u901a\u77e5' },
+        { priority: 'p1', icon: '🔴', text: '\u534e\u4e2d\u533a\u7ea2\u5b57\u53d1\u7968\u73878.7%\uff0c\u8fdc\u8d85\u884c\u4e1a\u57fa\u51c6', btn1: '\u53d1\u89c4\u8303\u63d0\u9192', btn1Action: '\u53d1\u89c4\u8303\u63d0\u9192', btn2: '\u67e5\u770b\u660e\u7ec6', btn2Action: '\u67e5\u770b\u660e\u7ec6' },
+        { priority: 'p2', icon: '📱', text: '\u5e73\u53f0\u5bf9\u8d26\u7387\u4ec538%\uff0c\u5efa\u8bae\u5b89\u6392\u6708\u5ea6\u6838\u9a8c', btn1: '\u4e00\u952e\u5bf9\u8d26', btn1Action: '\u4e00\u952e\u5bf9\u8d26', btn2: '\u5bfc\u51fa\u5dee\u5f02\u62a5\u544a', btn2Action: '\u5bfc\u51fa\u5dee\u5f02\u62a5\u544a' }
+    ];
+    var html = '';
+    suggestions.forEach(function(s) {
+        html += '<div class="inv-suggestion ' + s.priority + '"><div style="display:flex;align-items:center;gap:8px;flex:1;"><span>' + s.icon + '</span><span class="sug-text">' + s.text + '</span></div>' +
+            '<div class="sug-actions"><span class="sug-btn primary" onclick=\'sendChat("' + s.btn1Action + '")\'>' + s.btn1 + '</span>' +
+            (s.btn2 ? '<span class="sug-btn default" onclick=\'sendChat("' + s.btn2Action + '")\'>' + s.btn2 + '</span>' : '') +
+        '</div></div>';
+    });
+    document.getElementById('salesSuggestions').innerHTML = html;
+}
+
+// ===== Sales Invoice Drill-down Functions =====
+function showSalesDiffDetail() {
+    var data = SALES_TODAY_TASKS.internalDiff;
+    var html = '<div style="margin-bottom:10px;font-size:12px;color:#8c8c8c;">\u5185\u90e8\u5173\u8054\u4ea4\u6613\u5bf9\u8d26\u5dee\u5f02\u660e\u7ec6\uff0c\u5171 ' + data.length + ' \u7b14</div>';
+    data.forEach(function(d) {
+        html += '<div style="background:#fff1f0;border:1px solid #ffccc7;border-radius:8px;padding:10px;margin-bottom:8px;">' +
+            '<div style="font-size:13px;font-weight:600;color:#333;margin-bottom:4px;">' + d.fromCompany + ' \u2192 ' + d.toCompany + '</div>' +
+            '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:11px;">' +
+                '<div>\u5e94\u6536\uff1a<strong>\u00a5' + (d.sentAmount/10000).toFixed(0) + '\u4e07</strong></div><div>\u5b9e\u6536\uff1a<strong>\u00a5' + (d.receivedAmount/10000).toFixed(0) + '\u4e07</strong></div>' +
+                '<div>\u5dee\u5f02\uff1a<strong style="color:#f5222d;">\u00a5' + (Math.abs(d.diff)/10000).toFixed(0) + '\u4e07</strong></div><div>\u53d1\u7968\uff1a<strong>' + d.diffInvoiceCount + '</strong>\u5f20</div>' +
+            '</div>' +
+            '<div style="font-size:10px;color:#595959;margin-top:4px;">' + (d.diffSource || '') + '</div>' +
+        '</div>';
+    });
+    showKPIDetail('🔗 \u5185\u90e8\u5173\u8054\u4ea4\u6613\u00b7\u5bf9\u8d26\u5dee\u5f02\u660e\u7ec6', html);
+}
+
+function showPlatformDetail(platform) {
+    var p = PLATFORM_RECON_DATA.find(function(x) { return x.platform === platform; });
+    if (!p) return;
+    var html = '<div style="background:#fafafa;border:1px solid #e8e8ed;border-radius:8px;padding:12px;">' +
+        '<div style="font-size:13px;font-weight:600;color:#333;margin-bottom:8px;">📱 ' + p.platform + '</div>' +
+        '<table class="inv-table"><tr><th>\u95e8\u5e97</th><th>\u5e73\u53f0\u6570\u636e</th><th>\u7cfb\u7edf\u5f00\u7968</th><th>\u5dee\u5f02</th></tr>' +
+        '<tr><td>\u534e\u4e2d\u00b7\u4e07\u8fbe\u5e97</td><td>\u00a512\u4e07</td><td>\u00a58\u4e07</td><td style="color:#f5222d;">\u00a54\u4e07</td></tr>' +
+        '<tr><td>\u534e\u5357\u00b7\u6df1\u5733\u5e97</td><td>\u00a59\u4e07</td><td>\u00a56\u4e07</td><td style="color:#f5222d;">\u00a53\u4e07</td></tr>' +
+        '<tr><td>\u534e\u5317\u00b7\u5317\u4eac\u7ad9\u5e97</td><td>\u00a58\u4e07</td><td>\u00a55.5\u4e07</td><td style="color:#f5222d;">\u00a52.5\u4e07</td></tr>' +
+        '</table></div>';
+    showKPIDetail('📱 ' + p.platform + '\u00b7\u5dee\u5f02\u660e\u7ec6', html);
+}
+
+function showFraudDetail() {
+    var data = FRAUD_RISK_DATA.highRisk.concat(FRAUD_RISK_DATA.warning);
+    var html = '';
+    data.forEach(function(f) {
+        html += '<div style="background:' + (f.riskScore >= 80 ? '#fff1f0' : '#fffbe6') + ';border:1px solid ' + (f.riskScore >= 80 ? '#ffccc7' : '#ffe58f') + ';border-radius:8px;padding:10px;margin-bottom:8px;">' +
+            '<div style="display:flex;justify-content:space-between;margin-bottom:4px;">' +
+                '<span style="font-size:13px;font-weight:600;">' + f.companyName + '</span>' +
+                '<span style="padding:2px 10px;background:' + (f.riskScore >= 80 ? '#f5222d' : '#faad14') + ';color:#fff;border-radius:4px;font-size:12px;font-weight:700;">' + f.riskScore + '</span>' +
+            '</div>' +
+            '<table class="inv-table"><tr><th>\u98ce\u9669\u7279\u5f81</th><th>\u8be6\u7ec6</th></tr>';
+        f.features.forEach(function(feat) {
+            html += '<tr><td>' + feat.name + '</td><td>' + feat.detail + '</td></tr>';
+        });
+        html += '</table></div>';
+    });
+    showKPIDetail('🚨 \u865a\u5f00\u98ce\u9669\u6838\u67e5\u660e\u7ec6', html);
+}
+
+function showRedInvoiceDetail() {
+    var data = RED_INVOICE_DATA.topAbnormal;
+    var html = '<div style="margin-bottom:8px;font-size:11px;color:#8c8c8c;">\u884c\u4e1a\u57fa\u51c6 3%</div>' +
+        '<table class="inv-table"><tr><th>\u95e8\u5e97</th><th>\u7ea2\u5b57\u6570</th><th>\u5360\u6bd4</th><th>\u64cd\u4f5c\u5931\u8bef</th><th>\u6b63\u5e38\u9000\u8d27</th></tr>';
+    data.forEach(function(r) {
+        html += '<tr><td style="font-weight:500;">' + r.companyName + '</td><td>' + r.count + '</td><td style="color:' + (r.rate > 3 ? '#f5222d' : '#52c41a') + ';">' + r.rate + '%</td><td>' + r.operationError + '</td><td>' + r.normalReturn + '</td></tr>';
+    });
+    html += '</table>';
+    showKPIDetail('🔴 \u7ea2\u5b57\u53d1\u7968\u660e\u7ec6', html);
+}
+
+</script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+            background: #f5f6fa;
+            color: #1d1d1f;
+            height: 100vh; overflow: hidden;
+        }
+
+        /* ===== Top Nav ===== */
+        .top-nav {
+            height: 52px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            display: flex; align-items: center;
+            justify-content: space-between;
+            padding: 0 24px;
+            flex-shrink: 0;
+            z-index: 100;
+        }
+        .top-nav-left { display: flex; align-items: center; gap: 12px; }
+        .top-nav-left .logo-icon {
+            width: 60px; height: 60px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .top-nav-left .logo-icon img { width: 100%; height: 100%; object-fit: contain; }
+        .top-nav-left .logo-text { color: #fff; font-size: 16px; font-weight: 700; }
+        .top-nav-left .logo-text span { color: #52c41a; }
+        .top-nav-left .org-badge {
+            background: rgba(255,255,255,0.08);
+            padding: 3px 12px; border-radius: 10px;
+            font-size: 11px; color: rgba(255,255,255,0.7);
+        }
+        .top-nav-right { display: flex; align-items: center; gap: 12px; color: rgba(255,255,255,0.4); font-size: 11px; }
+        .top-nav-right .dot { width: 6px; height: 6px; border-radius: 50%; background: #52c41a; display: inline-block; animation: pls 2s infinite; }
+        @keyframes pls { 0%{opacity:1}50%{opacity:0.3}100%{opacity:1} }
+
+        /* ===== Main Layout: 3 columns ===== */
+        .main-layout { display: flex; height: calc(100vh - 52px); }
+
+        /* ===== Left Sidebar (Menu) ===== */
+        .left-menu {
+            width: 200px;
+            background: #fff;
+            border-right: 1px solid #e8e8ed;
+            display: flex; flex-direction: column;
+            flex-shrink: 0;
+            padding: 12px 0;
+        }
+        .menu-section-label {
+            font-size: 10px; color: #bfbfbf;
+            padding: 8px 16px 6px;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+        .menu-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 16px;
+            margin: 1px 8px;
+            border-radius: 6px;
+            cursor: pointer; transition: all 0.15s;
+            font-size: 13px; color: #595959;
+            border: none; background: none; width: calc(100% - 16px); text-align: left;
+        }
+        .menu-item:hover { background: #f5f6fa; color: #333; }
+        .menu-item.active { background: #e6f7ff; color: #1890ff; font-weight: 500; }
+        .menu-item .menu-icon { font-size: 16px; width: 20px; text-align: center; flex-shrink: 0; }
+        .menu-divider { height: 1px; background: #f0f0f0; margin: 8px 16px; }
+
+        /* Alert banner in left menu */
+        .menu-alert {
+            display: flex; align-items: center; gap: 8px;
+            margin: 0 8px 8px; padding: 8px 12px;
+            background: #fff2f0; border: 1px solid #ffccc7;
+            border-radius: 6px; cursor: pointer; transition: all 0.15s;
+        }
+        .menu-alert:hover { background: #fff1f0; }
+        .menu-alert .ma-icon {
+            width: 18px; height: 18px; background: #f5222d;
+            border-radius: 50%; display: flex; align-items: center;
+            justify-content: center; color: #fff; font-size: 10px; font-weight: 700;
+        }
+        .menu-alert .ma-text { font-size: 11px; color: #cf1322; font-weight: 500; flex: 1; }
+        .menu-alert .ma-count { font-size: 15px; font-weight: 700; color: #f5222d; }
+
+        /* Conversation list in left menu */
+        .conv-section-label {
+            font-size: 10px; color: #bfbfbf;
+            padding: 4px 16px 4px; letter-spacing: 1px;
+        }
+        .conv-list { flex: 1; overflow-y: auto; min-height: 220px; padding: 0 4px; scrollbar-width: thin; }
+        .conv-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 6px 12px; margin: 1px 4px;
+            border-radius: 6px; cursor: pointer; transition: all 0.12s;
+        }
+        .conv-item:hover { background: #f5f6fa; }
+        .conv-item.active { background: #e6f7ff; }
+        .conv-item .ci-dot {
+            width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
+        }
+        .conv-item .ci-body { flex: 1; min-width: 0; }
+        .conv-item .ci-title { font-size: 12px; font-weight: 500; color: #333; }
+        .conv-item .ci-preview { font-size: 10px; color: #bfbfbf; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .conv-more {
+            text-align: center; padding: 6px 0 8px;
+            font-size: 10px; color: #bfbfbf; cursor: pointer;
+        }
+
+        /* Menu secondary items (bottom area) */
+        .chat-toolbar {
+            padding: 8px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            flex-shrink: 0;
+        }
+        .chat-toolbar .tool-row {
+            display: flex; align-items: center; gap: 6px; margin-bottom: 4px;
+        }
+        .chat-toolbar .tool-label {
+            font-size: 10px; color: #bfbfbf; font-weight: 500; white-space: nowrap; width: 48px;
+        }
+        .chat-toolbar .agent-chip {
+            display: inline-block;
+            padding: 3px 10px; border-radius: 10px; font-size: 10px;
+            background: #f5f6fa; border: 1px solid #e8e8ed;
+            color: #595959; cursor: pointer;
+        }
+        .chat-toolbar .agent-chip.active { border-color: #1890ff; color: #1890ff; background: #e6f7ff; }
+
+        /* ===== Center Content ===== */
+        .center-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px 24px;
+            background: #f5f6fa;
+            min-width: 0;
+        }
+
+        /* ===== Right Chat Panel ===== */
+        .right-chat {
+            width: 380px;
+            background: #fff;
+            border-left: 1px solid #e8e8ed;
+            display: flex; flex-direction: column;
+            flex-shrink: 0;
+            transition: all 0.2s ease;
+            overflow: hidden;
+        }
+        .right-chat.collapsed {
+            width: 0;
+            min-width: 0;
+            border-left: none;
+            padding: 0;
+        }
+        .right-chat.collapsed .chat-header,
+        .right-chat.collapsed .chat-toolbar,
+        .right-chat.collapsed .chat-messages,
+        .right-chat.collapsed .chat-footer {
+            display: none;
+        }
+        .center-content.expanded {
+            flex: 1;
+        }
+        .chat-header {
+            padding: 14px 16px;
+            border-bottom: 1px solid #f0f0f0;
+            display: flex; align-items: center; gap: 10px;
+            flex-shrink: 0;
+        }
+        .chat-header .av {
+            width: 30px; height: 30px;
+            background: linear-gradient(135deg,#1a1a2e,#1890ff);
+            border-radius: 50%;
+            display: flex; align-items: center; justify-content: center;
+            color: #fff; font-size: 14px;
+        }
+        .chat-header .info { flex: 1; }
+        .chat-header .nm { font-size: 13px; font-weight: 600; }
+        .chat-header .st { font-size: 10px; color: #52c41a; }
+        .chat-header .collapse-btn {
+            width: 26px; height: 26px; border-radius: 6px;
+            border: none; background: #f5f5f5; cursor: pointer;
+            font-size: 12px; color: #8c8c8c;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; transition: all 0.15s;
+        }
+        .chat-header .collapse-btn:hover { background: #e8e8e8; color: #333; }
+        .chat-messages {
+            flex: 1; overflow-y: auto; padding: 12px 16px;
+        }
+        .chat-msg { display: flex; margin-bottom: 14px; }
+        .chat-msg.user { justify-content: flex-end; }
+        .chat-msg.ai { justify-content: flex-start; }
+        .chat-msg .bbl {
+            max-width: 85%; padding: 12px 16px; border-radius: 10px;
+            font-size: 13px; line-height: 1.7;
+        }
+        .chat-msg.user .bbl {
+            background: #1890ff; color: #fff;
+            border-bottom-right-radius: 4px;
+        }
+        .chat-msg.ai .bbl {
+            background: #f5f6fa; color: #1d1d1f;
+            border-bottom-left-radius: 4px;
+        }
+        .chat-msg .bbl strong { color: #1890ff; }
+        .chat-msg .bbl table { font-size: 11px; border-collapse: collapse; margin: 6px 0; width: 100%; }
+        .chat-msg .bbl table th,
+        .chat-msg .bbl table td { padding: 3px 6px; border: 1px solid #e8e8ed; text-align: left; }
+        .chat-msg .bbl table th { background: #f0f5ff; font-weight: 600; }
+        .chat-footer {
+            padding: 10px 16px;
+            border-top: 1px solid #f0f0f0;
+            flex-shrink: 0;
+        }
+        .chat-footer .input-row {
+            display: flex; gap: 8px;
+            background: #f5f6fa; border: 1px solid #e8e8ed;
+            border-radius: 8px; padding: 3px 3px 3px 12px;
+            transition: border-color 0.2s;
+        }
+        .chat-footer .input-row:focus-within { border-color: #1890ff; background: #fff; }
+        .chat-footer .input-row input {
+            flex: 1; border: none; background: transparent;
+            font-size: 13px; outline: none; height: 32px;
+        }
+        .chat-footer .input-row input::placeholder { color: #bfbfbf; }
+        .chat-footer .input-row button {
+            width: 32px; height: 32px; border: none; border-radius: 6px;
+            background: #1890ff; color: #fff; font-size: 15px;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+        }
+        .chat-footer .input-row button:hover { background: #096dd9; }
+        .chat-footer .model-bar {
+            display: flex; align-items: center; gap: 4px;
+            padding: 0 0 6px; flex-wrap: wrap;
+        }
+        .chat-footer .model-bar-label { font-size: 11px; margin-right: 2px; }
+        .chat-footer .model-chip {
+            padding: 2px 8px; border-radius: 8px; font-size: 10px;
+            background: #f5f6fa; border: 1px solid #e8e8ed;
+            color: #595959; cursor: pointer; transition: all 0.15s;
+        }
+        .chat-footer .model-chip:hover { border-color: #91d5ff; color: #1890ff; }
+        .chat-footer .model-chip.active { border-color: #1890ff; color: #1890ff; background: #e6f7ff; font-weight: 500; }
+
+        .chat-footer .session-bar {
+            display: flex; align-items: center; gap: 6px;
+            padding: 0 0 6px;
+        }
+        .chat-footer .session-bar .btn {
+            padding: 3px 10px; border-radius: 6px; font-size: 10px;
+            border: 1px solid #e8e8ed; background: #fafafa; cursor: pointer;
+            color: #595959; display: flex; align-items: center; gap: 4px;
+            transition: all 0.15s;
+        }
+        .chat-footer .session-bar .btn:hover { border-color: #1890ff; color: #1890ff; background: #f0f5ff; }
+        .chat-footer .session-bar .btn-primary { background: #1890ff; color: #fff; border-color: #1890ff; }
+        .chat-footer .session-bar .btn-primary:hover { background: #096dd9; }
+        .chat-footer .session-bar .history-select {
+            flex: 1; padding: 3px 8px; border-radius: 6px;
+            border: 1px solid #e8e8ed; background: #fafafa;
+            font-size: 10px; color: #595959; outline: none; cursor: pointer;
+        }
+        .chat-footer .preset-label {
+            font-size: 10px; color: #bfbfbf; margin-right: 4px;
+        }
+        .chat-footer .preset-tags { display: flex; gap: 4px; padding: 6px 0 0; flex-wrap: wrap; }
+        .chat-footer .preset-tags .pt {
+            padding: 3px 10px; border-radius: 10px; font-size: 10px;
+            color: #595959; background: #f5f6fa; border: 1px solid #e8e8ed;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .chat-footer .preset-tags .pt:hover { color: #1890ff; border-color: #1890ff; background: #f0f5ff; }
+
+        .chat-footer .quick-tags { display: flex; gap: 4px; padding: 6px 0 0; flex-wrap: wrap; }
+        .chat-footer .quick-tags .q {
+            padding: 2px 10px; border-radius: 10px; font-size: 10px;
+            color: #8c8c8c; background: #f5f6fa; border: 1px solid #e8e8ed;
+            cursor: pointer; transition: all 0.2s;
+        }
+        .chat-footer .quick-tags .q:hover { color: #1890ff; border-color: #1890ff; }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-thumb { background: #e8e8ed; border-radius: 2px; }
+
+        /* ===== Dashboard Content Styles ===== */
+        .org-row {
+            display: grid; grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px; margin-bottom: 16px;
+        }
+        .org-card {
+            background: #fff; border-radius: 8px; padding: 16px;
+            border: 1px solid #e8e8ed; cursor: pointer; transition: all 0.2s;
+        }
+        .org-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .org-card .oc-top { display: flex; justify-content: space-between; align-items: flex-start; }
+        .org-card .oc-label { font-size: 12px; color: #8c8c8c; }
+        .org-card .oc-badge {
+            font-size: 10px; padding: 1px 8px; border-radius: 8px;
+        }
+        .org-card .oc-badge.auto { background: #f6ffed; color: #52c41a; }
+        .org-card .oc-badge.review { background: #fff7e6; color: #faad14; }
+        .org-card .oc-value { font-size: 22px; font-weight: 700; color: #1d1d1f; margin: 6px 0 2px; }
+        .org-card .oc-sub { font-size: 11px; color: #bfbfbf; }
+        .org-card .oc-sub .hl { color: #1890ff; }
+
+        .kpi-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 16px; }
+        #companyKpiRow { display: block; width: 100%; }
+        .kpi-card {
+            background: #fff; border-radius: 8px; padding: 16px;
+            border: 1px solid #e8e8ed; transition: all 0.2s;
+        }
+        .kpi-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .kpi-card .kc-top { display: flex; justify-content: space-between; align-items: center; }
+        .kpi-card .kc-label { font-size: 11px; color: #8c8c8c; }
+        .kpi-card .kc-status { font-size: 10px; padding: 1px 8px; border-radius: 8px; }
+        .kpi-card .kc-status.yellow { background: #fffbe6; color: #faad14; }
+        .kpi-card .kc-status.green { background: #f6ffed; color: #52c41a; }
+        .kpi-card .kc-status.red { background: #fff2f0; color: #f5222d; }
+        .kpi-card .kc-value { font-size: 24px; font-weight: 700; margin: 4px 0 2px; }
+        .kpi-card .kc-value .unit { font-size: 13px; font-weight: 400; color: #8c8c8c; }
+        .kpi-card .kc-target { font-size: 10px; color: #bfbfbf; display: flex; align-items: center; gap: 4px; }
+        .kpi-card .kc-target .d { width: 5px; height: 5px; border-radius: 50%; display: inline-block; }
+        .kpi-card .kc-target .d.y { background: #faad14; }
+        .kpi-card .kc-target .d.g { background: #52c41a; }
+        .kpi-card .kc-target .d.r { background: #f5222d; }
+
+        .panels-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+        .panel-card {
+            background: #fff; border-radius: 8px; padding: 16px;
+            border: 1px solid #e8e8ed;
+        }
+        .panel-card .pc-title {
+            font-size: 13px; font-weight: 600; margin-bottom: 12px;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .panel-card .pc-title .tag { font-size: 10px; font-weight: 400; color: #8c8c8c; }
+
+        .auto-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .auto-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 6px;
+            background: #fafafa; border: 1px solid #f0f0f0;
+        }
+        .auto-item .ai-label { font-size: 12px; color: #595959; flex: 1; }
+        .auto-item .ai-bar { width: 80px; height: 6px; background: #f0f0f0; border-radius: 3px; overflow: hidden; flex-shrink: 0; }
+        .auto-item .ai-bar .fill { height: 100%; border-radius: 3px; transition: width 1s; }
+        .auto-item .ai-pct { font-size: 12px; font-weight: 600; width: 40px; text-align: right; }
+        .auto-item .ai-badge { font-size: 9px; padding: 1px 6px; border-radius: 6px; }
+        .auto-item .ai-badge.full { background: #f6ffed; color: #52c41a; }
+        .auto-item .ai-badge.part { background: #fff7e6; color: #faad14; }
+
+        .findings-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px; }
+        .finding-card {
+            background: #fff; border-radius: 8px; padding: 14px 16px;
+            border: 1px solid #e8e8ed; border-left: 3px solid #1890ff;
+            transition: all 0.2s;
+        }
+        .finding-card:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
+        .finding-card.fc-red { border-left-color: #f5222d; }
+        .finding-card.fc-yellow { border-left-color: #faad14; }
+        .finding-card.fc-green { border-left-color: #52c41a; }
+        .finding-card .fc-ico { font-size: 16px; margin-bottom: 4px; }
+        .finding-card .fc-title { font-size: 12px; font-weight: 600; margin-bottom: 3px; }
+        .finding-card .fc-desc { font-size: 11px; color: #8c8c8c; line-height: 1.5; }
+
+        .alerts-list { background: #fff; border-radius: 8px; border: 1px solid #e8e8ed; overflow: hidden; }
+        .alert-item {
+            display: flex; align-items: flex-start; gap: 10px;
+            padding: 10px 16px; border-bottom: 1px solid #f5f5f5;
+            transition: background 0.15s; cursor: pointer;
+        }
+        .alert-item:last-child { border-bottom: none; }
+        .alert-item:hover { background: #fafafa; }
+        .alert-item .lvl {
+            width: 24px; height: 18px; border-radius: 3px;
+            font-size: 9px; font-weight: 700; color: #fff;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; margin-top: 1px;
+        }
+        .alert-item .lvl.p0 { background: #f5222d; }
+        .alert-item .lvl.p1 { background: #faad14; color: #333; }
+        .alert-item .lvl.p2 { background: #1890ff; }
+        .alert-item .ab-body { flex: 1; }
+        .alert-item .ab-title { font-size: 12px; font-weight: 500; }
+        .alert-item .ab-detail { font-size: 11px; color: #8c8c8c; margin-top: 1px; }
+        .alert-item .ab-suggest { font-size: 11px; color: #1890ff; margin-top: 1px; }
+
+        /* ===== Risk Detail Overlay ===== */
+        .risk-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.3); z-index: 200;
+            display: flex; align-items: center; justify-content: center;
+            animation: fadeIn 0.15s ease;
+        }
+        @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+        .risk-detail {
+            background: #fff; border-radius: 12px; width: 640px; max-height: 80vh;
+            overflow-y: auto; box-shadow: 0 8px 40px rgba(0,0,0,0.12);
+            animation: slideUp 0.2s ease;
+        }
+        @keyframes slideUp { from{transform:translateY(20px);opacity:0} to{transform:translateY(0);opacity:1} }
+        .risk-detail-header {
+            display: flex; align-items: center; gap: 12px;
+            padding: 20px 24px; border-bottom: 1px solid #f0f0f0;
+            position: sticky; top: 0; background: #fff; z-index: 1;
+        }
+        .risk-detail-header .rd-title { flex: 1; font-size: 16px; font-weight: 600; }
+        .risk-detail-header .rd-close {
+            width: 28px; height: 28px; border-radius: 6px; border: none;
+            background: #f5f5f5; cursor: pointer; font-size: 14px;
+            display: flex; align-items: center; justify-content: center;
+            color: #8c8c8c; transition: all 0.15s;
+        }
+        .risk-detail-header .rd-close:hover { background: #e8e8e8; color: #333; }
+        .risk-detail-body { padding: 20px 24px 24px; }
+        .risk-section { margin-bottom: 18px; }
+        .risk-section:last-child { margin-bottom: 0; }
+        .risk-section .rs-label {
+            font-size: 11px; color: #8c8c8c; font-weight: 500;
+            margin-bottom: 6px; display: flex; align-items: center; gap: 6px;
+        }
+        .risk-section .rs-text { font-size: 13px; color: #333; line-height: 1.7; }
+        .risk-detail-table { width: 100%; font-size: 12px; }
+        .risk-detail-table td { padding: 4px 0; border-bottom: 1px solid #f5f5f5; }
+        .risk-detail-table td:first-child { color: #8c8c8c; width: 160px; }
+        .risk-detail-table td:last-child { color: #333; font-weight: 500; }
+        .risk-suggestion-item {
+            padding: 6px 10px; background: #f6ffed; border-radius: 6px;
+            font-size: 12px; color: #333; margin-bottom: 4px;
+        }
+        .risk-policy-box {
+            padding: 10px 14px; background: #fafafa; border-radius: 6px;
+            font-size: 12px; color: #595959; line-height: 1.6;
+            border-left: 3px solid #1890ff;
+        }
+        .risk-actions {
+            display: flex; gap: 8px; padding-top: 16px; border-top: 1px solid #f0f0f0;
+        }
+        .risk-actions button {
+            flex: 1; padding: 8px 0; border-radius: 6px; border: none;
+            font-size: 12px; cursor: pointer; transition: all 0.15s;
+        }
+        .risk-actions .btn-handle { background: #1890ff; color: #fff; }
+        .risk-actions .btn-handle:hover { background: #096dd9; }
+        .risk-actions .btn-handle:disabled { background: #d9d9d9; cursor: not-allowed; }
+        .risk-actions .btn-done { background: #52c41a; color: #fff; }
+        .risk-actions .btn-done:hover { background: #389e0d; }
+        .risk-actions .btn-done:disabled { background: #d9d9d9; cursor: not-allowed; }
+        .risk-actions .btn-trace { background: #f5f6fa; color: #333; border: 1px solid #e8e8ed; }
+        .risk-actions .btn-trace:hover { background: #e8e8ed; }
+
+        /* Risk status badges */
+        .risk-status-badge {
+            display: inline-flex; align-items: center; gap: 3px;
+            font-size: 10px; padding: 2px 8px; border-radius: 8px;
+        }
+        .risk-status-badge.pending { background: #fff2f0; color: #f5222d; }
+        .risk-status-badge.processing { background: #fffbe6; color: #d4b106; }
+        .risk-status-badge.done { background: #f6ffed; color: #52c41a; }
+
+        /* Level tag in detail */
+        .level-tag {
+            display: inline-block; padding: 2px 10px; border-radius: 4px;
+            font-size: 11px; font-weight: 600; color: #fff; white-space: nowrap;
+        }
+        .level-tag.l0 { background: #f5222d; }
+        .level-tag.l1 { background: #faad14; }
+        .level-tag.l2 { background: #fadb14; color: #333; }
+        .level-tag.l3 { background: #1890ff; }
+        .level-tag.l4 { background: #8c8c8c; }
+
+        /* Risk view sub-tabs */
+        .risk-tabs {
+            display: flex; gap: 0; margin-bottom: 16px;
+            background: #f5f6fa; border-radius: 8px; padding: 3px;
+            width: fit-content;
+        }
+        .risk-tab {
+            padding: 6px 16px; border-radius: 6px; font-size: 12px;
+            border: none; background: transparent; cursor: pointer;
+            color: #595959; transition: all 0.15s;
+        }
+        .risk-tab.active { background: #fff; color: #1890ff; font-weight: 500; box-shadow: 0 1px 3px rgba(0,0,0,0.06); }
+        .risk-tab:hover:not(.active) { color: #333; }
+        .risk-panel { display: none; }
+        .risk-panel.active { display: block; }
+        .ext-panel.active { display:block; }
+        .module-view { width: 100%; padding-top: 8px; }
+        .plugin-list { display:flex;flex-direction:column;gap:6px; }
+        /* Supply chain sub-view */
+        .supplier-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+        .supplier-table th {
+            text-align: left; padding: 10px 12px;
+            font-size: 11px; color: #8c8c8c; font-weight: 500;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .supplier-table td { padding: 12px; border-bottom: 1px solid #f5f5f5; }
+        .supplier-table tr:not(.supplier-detail) { cursor: pointer; transition: background 0.15s; }
+        .supplier-table tr:not(.supplier-detail):hover { background: #fafafa; }
+        .supplier-table .rank { font-weight: 600; color: #8c8c8c; width: 40px; }
+        .supplier-table .risk-rate { font-weight: 600; }
+        .supplier-table .trend { font-size: 14px; }
+        .supplier-detail { display: none; }
+        .supplier-detail.open { display: table-row; }
+        .supplier-detail td { padding: 16px 20px; background: #fafafa; }
+        .supplier-detail-inner { font-size: 12px; color: #595959; line-height: 1.7; }
+
+        /* Risk detail period row */
+        .risk-period-row {
+            display: flex; align-items: center;
+            padding: 10px 14px; background: #fafafa; border-radius: 6px;
+            margin-bottom: 16px; font-size: 12px;
+        }
+        .rp-item { display: inline-flex; align-items: center; gap: 6px; }
+        .rp-label { color: #8c8c8c; }
+        .rp-value { color: #333; font-weight: 500; }
+
+        /* Verify / Prevent action styles */
+        .risk-suggestion-item.verify { background: #fff7e6; border-left: 3px solid #faad14; }
+        .risk-suggestion-item.prevent { background: #e6f7ff; border-left: 3px solid #1890ff; }
+
+        /* Yearly data table */
+        .yearly-data-table { display: flex; flex-direction: column; gap: 6px; }
+        .yd-row {
+            display: flex; align-items: center; gap: 10px;
+            padding: 4px 8px; background: #fafafa; border-radius: 4px;
+            font-size: 12px;
+        }
+        .yd-year { width: 90px; flex-shrink: 0; color: #595959; }
+        .yd-label { width: 80px; flex-shrink: 0; color: #8c8c8c; font-size: 11px; }
+        .yd-bar { flex: 1; height: 8px; background: #f0f0f0; border-radius: 4px; overflow: hidden; }
+        .yd-bar .fill { height: 100%; background: #1890ff; border-radius: 4px; }
+        .yd-value { width: 100px; text-align: right; color: #333; font-weight: 500; flex-shrink: 0; }
+
+        /* Traceability modal */
+        .trace-overlay {
+            position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.3); z-index: 210;
+            display: flex; align-items: center; justify-content: center;
+            animation: fadeIn 0.15s ease;
+        }
+        .trace-modal {
+            background: #fff; border-radius: 12px; width: 560px; max-height: 80vh;
+            box-shadow: 0 8px 40px rgba(0,0,0,0.12); animation: slideUp 0.2s ease;
+        }
+        .trace-modal-header {
+            display: flex; align-items: center; padding: 20px 24px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .trace-modal-header h3 { flex: 1; font-size: 16px; }
+        .trace-modal-body { padding: 20px 24px 24px; overflow-y: auto; max-height: calc(80vh - 70px); }
+        .trace-section { margin-bottom: 20px; }
+        .trace-section:last-child { margin-bottom: 0; }
+        .trace-section .ts-label {
+            font-size: 11px; color: #8c8c8c; font-weight: 500; margin-bottom: 8px;
+        }
+        .trace-supplier-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 6px 10px; background: #f5f6fa; border-radius: 6px; margin-bottom: 4px;
+            font-size: 12px;
+        }
+        .trace-supplier-item .tsi-name { color: #333; }
+        .trace-supplier-item .tsi-count { color: #595959; font-weight: 500; }
+        .trace-timeline-item {
+            display: flex; align-items: center; gap: 10px; margin-bottom: 6px;
+        }
+        .trace-timeline-item .tti-year { font-size: 12px; color: #595959; width: 60px; flex-shrink: 0; }
+        .trace-timeline-item .tti-bar {
+            flex: 1; height: 10px; background: #f0f0f0; border-radius: 5px; overflow: hidden;
+        }
+        .trace-timeline-item .tti-bar .fill { height: 100%; border-radius: 5px; }
+        .trace-timeline-item .tti-count { font-size: 11px; color: #8c8c8c; width: 80px; text-align: right; flex-shrink: 0; }
+        .trace-impact-item {
+            display: flex; justify-content: space-between; align-items: center;
+            padding: 6px 10px; background: #fff7e6; border-radius: 6px; margin-bottom: 4px;
+            font-size: 12px;
+        }
+        .trace-impact-item .ti-label { color: #333; }
+        .trace-impact-item .ti-value { color: #faad14; font-weight: 600; }
+    
+        /* ===== Extension Modules CSS ===== */
+        .company-selector {
+            display: flex; align-items: center; gap: 8px;
+            margin-bottom: 14px; position: relative;
+        }
+        .company-selector label {
+            font-size: 12px; color: #8c8c8c; white-space: nowrap;
+        }
+        .company-selector select {
+            padding: 6px 12px; border-radius: 6px;
+            border: 1px solid #e8e8ed; background: #fff;
+            font-size: 13px; color: #333; width: 260px;
+            cursor: pointer; outline: none;
+        }
+        .company-selector select:focus {
+            border-color: #1890ff;
+        }
+        .risk-kpi { min-width: 0; }
+        .v2-section {
+            background: #fff; border: 1px solid #e8e8ed;
+            border-radius: 10px; padding: 16px 18px; margin-bottom: 14px;
+        }
+        .v2-section-title {
+            font-size: 13px; font-weight: 600; color: #333;
+            margin-bottom: 10px;
+        }
+        .v2-region-table, .v2-top5-table, .v2-company-table {
+            width: 100%; border-collapse: collapse; font-size: 13px;
+        }
+        .v2-region-table th, .v2-top5-table th, .v2-company-table th {
+            font-size: 11px; color: #8c8c8c; font-weight: 500;
+            padding: 8px 10px; text-align: left;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .v2-region-table td, .v2-top5-table td, .v2-company-table td {
+            padding: 10px; border-bottom: 1px solid #f5f5f5;
+        }
+        .v2-region-table tr:hover td,
+        .v2-top5-table tr:hover td,
+        .v2-company-table tr:hover td {
+            background: #fafafa;
+        }
+                .compliance-item {
+            display: flex; align-items: center; gap: 6px;
+            padding: 7px 10px; border-radius: 6px; transition: background 0.12s;
+        }
+        .compliance-item:hover { background: #f5f6fa; }
+.v2-action-btn {
+            padding: 3px 12px; background: #f0f5ff; color: #1890ff;
+            border-radius: 4px; font-size: 11px; cursor: pointer;
+        }
+        .v2-action-btn:hover {
+            background: #e6f7ff;
+        }
+        .v2-rank {
+            display: inline-flex; align-items: center; justify-content: center;
+            width: 22px; height: 22px; background: #f5f6fa;
+            border-radius: 50%; font-size: 11px; font-weight: 600; color: #595959;
+        }
+        .v2-two-col {
+            display: flex; gap: 14px; margin-bottom: 14px;
+        }
+        .v2-two-col .v2-section { margin-bottom: 0; }
+        .v2-alert-item {
+            display: flex; gap: 10px; padding: 10px 0;
+            border-bottom: 1px solid #f5f5f5; transition: background 0.12s;
+        }
+        .v2-alert-item:hover { background: #fafafa; }
+        .v2-alert-item:last-child { border-bottom: none; }
+        .v2-alert-left { flex-shrink: 0; }
+        .v2-alert-time {
+            font-size: 10px; color: #bfbfbf; background: #f5f6fa;
+            padding: 2px 6px; border-radius: 4px;
+        }
+        .v2-alert-body { flex: 1; min-width: 0; }
+        .v2-alert-company { font-size: 12px; font-weight: 500; color: #333; }
+        .v2-alert-summary { font-size: 11px; color: #8c8c8c; margin-top: 1px; }
+        .v2-summary-divider {
+            width: 1px; height: 18px; background: #d6e4ff; display: inline-block;
+        }
+        .v2-kpi { min-width: 0; }
+        @media (max-width: 1100px) {
+            .v2-two-col { flex-direction: column; }
+        }
+        .ext-header { font-size:12px;font-weight:600;color:#333;margin-bottom:10px; }
+        .ext-tabs { display:flex;gap:0;margin-bottom:14px;background:#f5f6fa;border-radius:8px;padding:3px;width:fit-content; }
+        .ext-tab { padding:6px 16px;border-radius:6px;font-size:12px;border:none;background:transparent;cursor:pointer;color:#595959;transition:all 0.15s; }
+        .ext-tab.active { background:#fff;color:#1890ff;font-weight:500;box-shadow:0 1px 3px rgba(0,0,0,0.06); }
+        .ext-tab:hover:not(.active) { color:#333; }
+        .ext-panel { display:none; }
+        .ext-panel.active { display:block; }
+        .module-view { width: 100%; padding-top: 8px; }
+        .plugin-list { display:flex;flex-direction:column;gap:6px; }
+        .plugin-item { display:flex;align-items:center;gap:12px;padding:16px 18px;background:#fff;border:1px solid #e8e8ed;border-radius:10px;cursor:pointer;transition:all 0.15s; }
+        .plugin-item:hover { border-color:#d6e4ff;box-shadow:0 2px 8px rgba(0,0,0,0.04); }
+        .plugin-item .pi-icon { width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0; }
+        .plugin-item .pi-body { flex:1;min-width:0; }
+        .plugin-item .pi-title { font-size:13px;font-weight:500;color:#333; }
+        .plugin-item .pi-desc { font-size:11px;color:#8c8c8c;margin-top:1px; }
+        .plugin-item .pi-status { font-size:10px;padding:2px 8px;border-radius:4px;flex-shrink:0; }
+        .pi-status.active { background:#f6ffed;color:#52c41a; }
+        .pi-status.paused { background:#fffbe6;color:#d4b106; }
+        .pi-status.error { background:#fff2f0;color:#f5222d; }
+        .pi-status.pending { background:#f5f6fa;color:#8c8c8c; }
+        .pi-actions { display:flex;gap:4px;flex-shrink:0; }
+        .pi-actions span { padding:3px 8px;font-size:10px;border-radius:4px;cursor:pointer;color:#8c8c8c;transition:all 0.15s; }
+        .pi-actions span:hover { background:#f0f0f0;color:#333; }
+        .mcp-status-dot { width:8px;height:8px;border-radius:50%;display:inline-block;margin-right:4px; }
+        .mcp-status-dot.green { background:#52c41a; }
+        .mcp-status-dot.yellow { background:#faad14; }
+        .mcp-status-dot.red { background:#f5222d; }
+        .agent-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(420px,1fr));gap:10px; }
+        .agent-card { display:flex;align-items:center;gap:12px;padding:16px 18px;background:#fff;border:1px solid #e8e8ed;border-radius:10px;cursor:pointer;transition:all 0.15s; margin-bottom:0; }
+        .agent-card:hover { border-color:#d6e4ff;box-shadow:0 2px 8px rgba(0,0,0,0.04); }
+        .agent-card .ac-av { width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0; }
+        .agent-card .ac-body { flex:1;min-width:0; }
+        .agent-card .ac-name { font-size:14px;font-weight:600;color:#333; }
+        .agent-card .ac-style { font-size:11px;color:#8c8c8c;margin-top:1px; }
+        .agent-card .ac-bind { font-size:10px;color:#bfbfbf;margin-top:1px; }
+        .agent-card .ac-status { font-size:10px;padding:2px 8px;border-radius:4px;flex-shrink:0; }
+        .agent-card .ac-status.online { background:#f6ffed;color:#52c41a; }
+        .agent-card .ac-status.paused { background:#f5f6fa;color:#8c8c8c; }
+        .kb-folder { background:#fff;border:1px solid #e8e8ed;border-radius:10px;margin-bottom:8px;overflow:hidden; }
+        .kb-folder-header { display:flex;align-items:center;gap:8px;padding:12px 16px;cursor:pointer;transition:all 0.15s; }
+        .kb-folder-header:hover { background:#fafafa; }
+        .kb-folder-header .kbf-icon { font-size:16px; }
+        .kb-folder-header .kbf-name { font-size:13px;font-weight:500;color:#333;flex:1; }
+        .kb-folder-header .kbf-count { font-size:11px;color:#8c8c8c; }
+        .kb-folder-header .kbf-status { font-size:10px;padding:1px 8px;border-radius:4px; }
+        .kb-folder-header .kbf-status.ready { background:#f6ffed;color:#52c41a; }
+        .kb-folder-header .kbf-status.busy { background:#fffbe6;color:#d4b106; }
+        .kb-file-list { }
+        .kb-file { display:flex;align-items:center;gap:8px;padding:8px 16px 8px 44px;font-size:12px;color:#595959;border-top:1px solid #f5f5f5;transition:background 0.15s; }
+        .kb-file:hover { background:#fafafa; }
+        .kb-file .kbfi-name { flex:1; }
+        .kb-file .kbfi-status { font-size:10px; }
+        .kb-file .kbfi-status.done { color:#52c41a; }
+        .kb-file .kbfi-status.busy { color:#faad14; }
+        .kb-file .kbfi-time { font-size:10px;color:#bfbfbf; }
+        .kb-upload-zone { border:2px dashed #d9d9d9;border-radius:10px;padding:30px;text-align:center;cursor:pointer;transition:all 0.15s;margin-bottom:16px; }
+        .kb-upload-zone:hover { border-color:#1890ff;background:#f0f5ff; }
+        .kb-upload-zone .kb-uz-icon { font-size:32px;margin-bottom:8px; }
+        .kb-upload-zone .kb-uz-text { font-size:13px;color:#8c8c8c; }
+        .kb-upload-zone .kb-uz-hint { font-size:10px;color:#bfbfbf;margin-top:4px; }
+        .agent-select-dropdown { position:absolute;top:100%;left:0;right:0;background:#fff;border:1px solid #e8e8ed;border-radius:8px;box-shadow:0 4px 20px rgba(0,0,0,0.08);z-index:50;display:none;max-height:200px;overflow-y:auto; }
+        .agent-select-dropdown.open { display:block; }
+        .agent-select-item { display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;font-size:12px;color:#333;transition:background 0.12s; }
+        .agent-select-item:hover { background:#f5f6fa; }
+        .agent-select-item .asi-check { width:16px;text-align:center;color:#1890ff; }
+
+
+/* ===== Invoice Management Module ===== */
+.inv-section {
+    background: #fff; border: 1px solid #e8e8ed; border-radius: 10px;
+    padding: 14px 18px; margin-bottom: 14px;
+}
+.inv-section-title {
+    font-size: 13px; font-weight: 600; color: #333;
+    margin-bottom: 10px; display: flex; align-items: center; gap: 6px;
+}
+.inv-table {
+    width: 100%; border-collapse: collapse; font-size: 13px;
+}
+.inv-table th {
+    font-size: 11px; color: #8c8c8c; font-weight: 500;
+    padding: 8px 10px; text-align: left; border-bottom: 1px solid #f0f0f0;
+}
+.inv-table td {
+    padding: 10px; border-bottom: 1px solid #f5f5f5;
+}
+.inv-table tr:hover td { background: #fafafa; }
+.inv-table .rate-red { color: #f5222d; font-weight: 600; }
+.inv-table .rate-yellow { color: #faad14; font-weight: 600; }
+.inv-table .rate-green { color: #52c41a; font-weight: 600; }
+.inv-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 3px;
+    font-size: 10px; font-weight: 600;
+}
+.inv-badge.red { background: #fff1f0; color: #f5222d; }
+.inv-badge.yellow { background: #fffbe6; color: #faad14; }
+.inv-badge.green { background: #f6ffed; color: #52c41a; }
+.inv-expiring-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px;
+}
+.inv-exp-col {
+    border-radius: 8px; padding: 12px; min-height: 120px;
+}
+.inv-exp-col.high { background: #fff1f0; border: 1px solid #ffccc7; }
+.inv-exp-col.mid { background: #fffbe6; border: 1px solid #ffe58f; }
+.inv-exp-col.safe { background: #f6ffed; border: 1px solid #b7eb8f; }
+.inv-exp-col-title {
+    font-size: 12px; font-weight: 600; margin-bottom: 8px;
+    display: flex; align-items: center; gap: 4px;
+}
+.inv-exp-item {
+    padding: 8px 10px; background: rgba(255,255,255,0.85);
+    border-radius: 6px; margin-bottom: 6px; cursor: pointer;
+    transition: box-shadow 0.12s;
+}
+.inv-exp-item:hover { box-shadow: 0 1px 4px rgba(0,0,0,0.1); }
+.inv-exp-item .sup-name { font-size: 12px; font-weight: 600; color: #333; }
+.inv-exp-item .sup-amount { font-size: 13px; color: #f5222d; font-weight: 600; }
+.inv-exp-item .sup-days { font-size: 10px; color: #8c8c8c; }
+.inv-supplier-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 3px;
+    font-size: 11px; font-weight: 700;
+}
+.inv-supplier-badge.A { background: #f6ffed; color: #52c41a; }
+.inv-supplier-badge.B { background: #e6f7ff; color: #1890ff; }
+.inv-supplier-badge.C { background: #fffbe6; color: #faad14; }
+.inv-supplier-badge.D { background: #fff1f0; color: #f5222d; }
+.inv-suggestion {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 14px; background: #fafafa; border-radius: 8px;
+    margin-bottom: 8px; border-left: 3px solid #1890ff;
+}
+.inv-suggestion:last-child { margin-bottom: 0; }
+.inv-suggestion .sug-text { font-size: 12px; color: #333; flex: 1; }
+.inv-suggestion .sug-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.inv-suggestion .sug-btn {
+    padding: 4px 12px; border-radius: 4px; font-size: 11px;
+    cursor: pointer; white-space: nowrap;
+}
+.inv-suggestion .sug-btn.primary { background: #1890ff; color: #fff; }
+.inv-suggestion .sug-btn.default { background: #f0f5ff; color: #1890ff; }
+.inv-suggestion.p0 { border-left-color: #f5222d; }
+.inv-suggestion.p1 { border-left-color: #faad14; }
+.inv-suggestion.p2 { border-left-color: #1890ff; }
+.inv-progress-row {
+    display: flex; gap: 14px; margin-bottom: 14px;
+}
+.inv-progress-card {
+    flex: 1; background: #fff; border: 1px solid #e8e8ed;
+    border-radius: 10px; padding: 16px 18px;
+}
+.inv-progress-card .pc-label {
+    font-size: 11px; color: #8c8c8c; margin-bottom: 4px;
+}
+.inv-progress-card .pc-value {
+    font-size: 20px; font-weight: 700; color: #333;
+}
+.inv-progress-card .pc-sub {
+    font-size: 10px; color: #bfbfbf; margin-top: 2px;
+}
+.inv-kpi-row {
+    display: flex; gap: 14px; margin-bottom: 14px;
+}
+.inv-kpi-card {
+    flex: 1; background: #fff; border: 1px solid #e8e8ed;
+    border-radius: 10px; padding: 14px 18px;
+    display: flex; flex-direction: column;
+}
+.inv-kpi-card .kc-icon { font-size: 20px; margin-bottom: 4px; }
+.inv-kpi-card .kc-value {
+    font-size: 22px; font-weight: 700; margin: 2px 0;
+}
+.inv-kpi-card .kc-label { font-size: 11px; color: #8c8c8c; }
+.inv-kpi-card .kc-status {
+    font-size: 10px; font-weight: 600; padding: 1px 6px;
+    border-radius: 3px; display: inline-block;
+}
+.inv-ring-container {
+    width: 100%; height: 260px;
+}
+
+/* ===== v2: Today Tasks ===== */
+.inv-tasks-section { background:#fff; border:1px solid #e8e8ed; border-radius:10px; margin-bottom:14px; overflow:hidden; }
+.inv-tasks-header { display:flex; justify-content:space-between; align-items:center; padding:14px 18px; background:linear-gradient(135deg,#f0f5ff,#e6f7ff); border-bottom:1px solid #d6e4ff; }
+.inv-tasks-header .th-title { font-size:14px; font-weight:600; color:#333; display:flex; align-items:center; gap:6px; }
+.inv-tasks-header .th-deadline { font-size:11px; color:#8c8c8c; }
+.inv-task-group { padding:0 18px; }
+.inv-task-group-title { font-size:11px; font-weight:600; padding:10px 0 6px 0; display:flex; align-items:center; gap:4px; border-bottom:1px solid #f5f5f5; }
+.inv-task-item { display:flex; align-items:center; justify-content:space-between; padding:8px 0; border-bottom:1px solid #f5f5f5; }
+.inv-task-item:last-child { border-bottom:none; }
+.inv-task-item .ti-left { display:flex; align-items:flex-start; gap:8px; flex:1; }
+.inv-task-item .ti-bullet { width:6px; height:6px; border-radius:50%; margin-top:5px; flex-shrink:0; }
+.inv-task-item .ti-title { font-size:12px; color:#333; font-weight:500; }
+.inv-task-item .ti-desc { font-size:10px; color:#8c8c8c; margin-top:2px; }
+.inv-task-item .ti-actions { display:flex; gap:6px; flex-shrink:0; }
+.inv-task-group.collapsed .inv-task-item { display:none; }
+.inv-task-group .collapse-toggle { font-size:10px; color:#8c8c8c; cursor:pointer; }
+
+/* ===== v2: Health Overview ===== */
+.inv-health-row { display:flex; gap:14px; margin-bottom:14px; }
+.inv-health-card { flex:1; background:#fff; border:1px solid #e8e8ed; border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; }
+.inv-health-card .hc-icon { font-size:16px; margin-bottom:2px; }
+.inv-health-card .hc-label { font-size:10px; color:#8c8c8c; margin-bottom:2px; }
+.inv-health-card .hc-value { font-size:22px; font-weight:700; color:#333; }
+.inv-health-card .hc-sub { font-size:10px; color:#bfbfbf; margin-top:2px; }
+
+/* ===== v2: Abnormal Companies ===== */
+.inv-abnormal-section { background:#fff; border:1px solid #e8e8ed; border-radius:10px; margin-bottom:14px; padding:14px 18px; }
+.inv-abnormal-title { font-size:13px; font-weight:600; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
+.inv-abnormal-grid { display:flex; gap:12px; }
+.inv-abnormal-col { flex:1; min-height:80px; border-radius:8px; padding:10px; }
+.inv-abnormal-col.high { background:#fff1f0; border:1px solid #ffccc7; }
+.inv-abnormal-col.warn { background:#fffbe6; border:1px solid #ffe58f; }
+.inv-abnormal-col.normal { background:#f6ffed; border:1px solid #b7eb8f; }
+.inv-abnormal-col-title { font-size:11px; font-weight:600; margin-bottom:6px; display:flex; align-items:center; gap:4px; }
+.inv-abnormal-item { padding:6px 8px; background:rgba(255,255,255,0.9); border-radius:6px; margin-bottom:4px; }
+.inv-abnormal-item .ai-name { font-size:11px; font-weight:500; color:#333; }
+.inv-abnormal-item .ai-stat { font-size:10px; color:#8c8c8c; }
+.inv-abnormal-item .ai-actions { display:flex; gap:4px; margin-top:3px; }
+.inv-abnormal-item .ai-btn { font-size:9px; padding:2px 8px; border-radius:3px; cursor:pointer; white-space:nowrap; }
+
+/* ===== v2: Urgency Ranking ===== */
+.inv-urgency-section { background:#fff; border:1px solid #e8e8ed; border-radius:10px; margin-bottom:14px; padding:14px 18px; }
+.inv-urgency-title { font-size:13px; font-weight:600; margin-bottom:4px; display:flex; align-items:center; gap:6px; }
+.inv-urgency-sub { font-size:10px; color:#8c8c8c; margin-bottom:10px; }
+.inv-urgency-block { border-radius:8px; padding:10px; margin-bottom:8px; }
+.inv-urgency-block.priority { background:#fff1f0; border:1px solid #ffccc7; }
+.inv-urgency-block.watch { background:#fffbe6; border:1px solid #ffe58f; }
+.inv-urgency-block.normal { background:#f6ffed; border:1px solid #b7eb8f; }
+.inv-urgency-block-title { font-size:11px; font-weight:600; margin-bottom:6px; display:flex; align-items:center; gap:4px; }
+.inv-urgency-item { padding:8px 10px; background:rgba(255,255,255,0.9); border-radius:6px; margin-bottom:6px; }
+.inv-urgency-item:last-child { margin-bottom:0; }
+.inv-urgency-item .ui-row1 { display:flex; justify-content:space-between; align-items:center; }
+.inv-urgency-item .ui-supplier { font-size:12px; font-weight:600; color:#333; }
+.inv-urgency-item .ui-amount { font-size:13px; font-weight:600; color:#f5222d; }
+.inv-urgency-item .ui-row2 { font-size:10px; color:#8c8c8c; margin-top:2px; }
+.inv-urgency-item .ui-row3 { font-size:10px; color:#595959; margin-top:2px; font-weight:500; }
+.inv-urgency-item .ui-actions { display:flex; gap:6px; margin-top:4px; }
+.inv-urgency-item .ui-score { display:inline-block; padding:1px 6px; border-radius:3px; font-size:9px; font-weight:600; }
+.inv-urgency-item .ui-score.high { background:#f5222d; color:#fff; }
+.inv-urgency-item .ui-score.mid { background:#faad14; color:#fff; }
+
+/* ===== v2: Supplier Risk Tracking ===== */
+.inv-supplier-section { background:#fff; border:1px solid #e8e8ed; border-radius:10px; margin-bottom:14px; padding:14px 18px; }
+.inv-supplier-title { font-size:13px; font-weight:600; margin-bottom:10px; display:flex; align-items:center; gap:6px; justify-content:space-between; }
+.inv-supplier-item { display:flex; align-items:center; justify-content:space-between; padding:8px 10px; background:#fafafa; border-radius:6px; margin-bottom:6px; border-left:3px solid #8c8c8c; }
+.inv-supplier-item .si-left { display:flex; align-items:center; gap:10px; flex:1; }
+.inv-supplier-item .si-level { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:700; flex-shrink:0; }
+.inv-supplier-item .si-name { font-size:12px; font-weight:500; color:#333; }
+.inv-supplier-item .si-stat { font-size:10px; color:#8c8c8c; }
+.inv-supplier-item .si-actions { display:flex; gap:4px; flex-shrink:0; }
+.inv-supplier-nav { font-size:10px; color:#1890ff; cursor:pointer; }
+
+/* ===== v2: Search Bar ===== */
+.inv-search-wrapper { position:relative; }
+.inv-search-input { padding:5px 10px 5px 24px; border:1px solid #d9d9d9; border-radius:6px; font-size:11px; width:180px; outline:none; background:#fafafa; }
+.inv-search-input:focus { border-color:#1890ff; background:#fff; }
+.inv-search-ico { position:absolute; left:6px; top:7px; font-size:11px; color:#bfbfbf; }
+.inv-search-dropdown { position:absolute; top:100%; right:0; width:260px; background:#fff; border:1px solid #e8e8ed; border-radius:6px; box-shadow:0 4px 12px rgba(0,0,0,0.08); display:none; z-index:100; }
+.inv-search-dropdown.show { display:block; }
+.inv-search-item { padding:8px 12px; font-size:11px; cursor:pointer; border-bottom:1px solid #f5f5f5; }
+.inv-search-item:last-child { border-bottom:none; }
+.inv-search-item:hover { background:#f0f5ff; }
+.inv-search-item .si-match { font-weight:600; color:#1890ff; }
+
+
+/* ===== Declaration v2 ===== */
+.decl-period-bar { background:linear-gradient(135deg,#f0f5ff,#e6f7ff); border:1px solid #d6e4ff; border-radius:10px; margin-bottom:14px; padding:12px 18px; }
+.decl-period-title { font-size:13px; font-weight:600; margin-bottom:6px; display:flex; align-items:center; gap:6px; }
+.decl-period-note { font-size:10px; color:#8c8c8c; margin-bottom:8px; }
+.decl-tax-row { display:flex; gap:12px; }
+.decl-tax-item { flex:1; background:#fff; border-radius:8px; padding:8px 10px; border-left:3px solid #52c41a; }
+.decl-tax-item .ti-name { font-size:11px; font-weight:600; color:#333; }
+.decl-tax-item .ti-deadline { font-size:10px; color:#8c8c8c; }
+.decl-tax-item .ti-days { font-size:16px; font-weight:700; }
+.decl-tax-item .ti-progress { font-size:10px; color:#8c8c8c; margin-top:2px; }
+
+.decl-progress-row { display:flex; gap:14px; margin-bottom:14px; }
+.decl-progress-card { flex:1; background:#fff; border:1px solid #e8e8ed; border-radius:10px; padding:12px 14px; }
+.decl-progress-card .pc-icon { font-size:14px; }
+.decl-progress-card .pc-label { font-size:10px; color:#8c8c8c; }
+.decl-progress-card .pc-value { font-size:20px; font-weight:700; }
+
+.decl-section { background:#fff; border:1px solid #e8e8ed; border-radius:10px; margin-bottom:14px; padding:14px 18px; }
+.decl-section-title { font-size:13px; font-weight:600; margin-bottom:10px; display:flex; align-items:center; gap:6px; justify-content:space-between; }
+
+.decl-table { width:100%; border-collapse:collapse; font-size:11px; }
+.decl-table th { background:#fafafa; font-size:10px; color:#8c8c8c; font-weight:500; padding:8px 10px; text-align:left; border-bottom:1px solid #f0f0f0; }
+.decl-table td { padding:8px 10px; border-bottom:1px solid #f5f5f5; }
+.decl-table tr:hover td { background:#fafafa; }
+
+.decl-filter-bar { display:flex; gap:6px; margin-bottom:10px; align-items:center; }
+.decl-filter-tag { padding:4px 12px; border-radius:4px; font-size:10px; cursor:pointer; background:#f5f5f5; color:#595959; }
+.decl-filter-tag.active { background:#1890ff; color:#fff; }
+.decl-filter-tag.emerg { background:#fff1f0; color:#f5222d; }
+.decl-search-input { padding:4px 8px; border:1px solid #d9d9d9; border-radius:4px; font-size:10px; width:160px; outline:none; }
+
+.decl-anomaly-block { border-radius:8px; padding:10px; margin-bottom:8px; }
+.decl-anomaly-block.high { background:#fff1f0; border:1px solid #ffccc7; }
+.decl-anomaly-block.warn { background:#fffbe6; border:1px solid #ffe58f; }
+.decl-anomaly-item { font-size:11px; padding:4px 0; border-bottom:1px solid rgba(0,0,0,0.03); display:flex; justify-content:space-between; align-items:center; }
+.decl-anomaly-item:last-child { border-bottom:none; }
+
+.decl-health-row { display:flex; gap:14px; margin-bottom:14px; }
+.decl-health-card { flex:1; background:#fff; border:1px solid #e8e8ed; border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; }
+.decl-health-card .hc-icon { font-size:16px; margin-bottom:2px; }
+.decl-health-card .hc-label { font-size:10px; color:#8c8c8c; }
+.decl-health-card .hc-value { font-size:22px; font-weight:700; color:#333; }
+.decl-health-card .hc-sub { font-size:10px; color:#bfbfbf; }
+
+.decl-trend-chart { display:flex; align-items:flex-end; gap:4px; height:120px; padding:10px 0; }
+.decl-trend-group { flex:1; display:flex; flex-direction:column; align-items:center; gap:2px; }
+.decl-trend-bar { width:60%; border-radius:3px 3px 0 0; min-height:4px; }
+.decl-trend-bar.pred { background:#1890ff; }
+.decl-trend-bar.actual { background:#52c41a; }
+.decl-trend-label { font-size:9px; color:#8c8c8c; text-align:center; }
+
+
+/* ===== Tax Calendar Widget ===== */
+.dash-cal-widget { background:#fff; border:1px solid #e8e8ed; border-radius:10px; margin-bottom:14px; padding:12px 18px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; transition:all 0.12s; }
+.dash-cal-widget:hover { background:#f0f5ff; border-color:#1890ff; }
+.dash-cal-widget .cw-left { display:flex; align-items:center; gap:14px; }
+.dash-cal-widget .cw-icon { width:40px; height:40px; background:linear-gradient(135deg,#1890ff,#40a9ff); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:20px; color:#fff; flex-shrink:0; }
+.dash-cal-widget .cw-info { display:flex; flex-direction:column; }
+.dash-cal-widget .cw-title { font-size:13px; font-weight:600; color:#333; }
+.dash-cal-widget .cw-sub { font-size:10px; color:#8c8c8c; margin-top:1px; }
+.dash-cal-widget .cw-deadline { display:flex; align-items:center; gap:16px; }
+.dash-cal-widget .cw-dl-item { display:flex; flex-direction:column; align-items:center; }
+.dash-cal-widget .cw-dl-name { font-size:9px; color:#bfbfbf; }
+.dash-cal-widget .cw-dl-date { font-size:13px; font-weight:700; color:#333; }
+.dash-cal-widget .cw-dl-remain { font-size:9px; }
+.dash-cal-widget .cw-arrow { font-size:16px; color:#bfbfbf; }
+
+/* ===== Full Calendar Modal ===== */
+.cal-modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.45); z-index:1000; display:flex; align-items:center; justify-content:center; }
+.cal-modal { background:#fff; border-radius:12px; width:480px; max-height:80vh; overflow-y:auto; padding:20px 24px; box-shadow:0 8px 24px rgba(0,0,0,0.15); }
+.cal-modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+.cal-modal-title { font-size:16px; font-weight:700; color:#333; }
+.cal-modal-close { width:28px; height:28px; border-radius:50%; border:none; background:#f5f5f5; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center; color:#8c8c8c; }
+.cal-modal-close:hover { background:#e8e8e8; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+.cal-weekday { font-size:10px; color:#bfbfbf; text-align:center; padding:6px 0; font-weight:500; }
+.cal-day { aspect-ratio:1; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:13px; font-weight:500; color:#333; position:relative; }
+.cal-day.other-month { color:#e8e8e8; }
+.cal-day.today { background:#e6f7ff; border:2px solid #1890ff; font-weight:700; }
+.cal-day.event { font-weight:700; }
+.cal-day .cd-dot { width:5px; height:5px; border-radius:50%; margin:2px auto 0; }
+.cal-day .cd-dot.vat { background:#1890ff; }
+.cal-day .cd-dot.personal { background:#faad14; }
+.cal-day .cd-dot.corp { background:#52c41a; }
+.cal-day .cd-dot.multi { background:#f5222d; }
+.cal-legend { display:flex; gap:16px; margin-top:12px; font-size:11px; color:#8c8c8c; justify-content:center; padding-top:10px; border-top:1px solid #f0f0f0; }
+.cal-legend span { display:flex; align-items:center; gap:4px; }
+.cal-legend .dot { width:7px; height:7px; border-radius:50%; display:inline-block; }
+    /* ===== Dashboard v2 CSS (continued) ===== */
+.dash-cal-widget { background:#fff; border:1px solid #e8e8ed; border-radius:10px; margin-bottom:14px; padding:12px 18px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; transition:all 0.12s; }
+.dash-cal-widget:hover { background:#f0f5ff; border-color:#1890ff; }
+.dash-cal-widget .cw-left { display:flex; align-items:center; gap:14px; }
+.dash-cal-widget .cw-icon { width:40px; height:40px; background:linear-gradient(135deg,#1890ff,#40a9ff); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:20px; color:#fff; flex-shrink:0; }
+.dash-cal-widget .cw-info { display:flex; flex-direction:column; }
+.dash-cal-widget .cw-title { font-size:13px; font-weight:600; color:#333; }
+.dash-cal-widget .cw-sub { font-size:10px; color:#8c8c8c; margin-top:1px; }
+.dash-cal-widget .cw-deadline { display:flex; align-items:center; gap:16px; }
+.dash-cal-widget .cw-dl-item { display:flex; flex-direction:column; align-items:center; }
+.dash-cal-widget .cw-dl-name { font-size:9px; color:#bfbfbf; }
+.dash-cal-widget .cw-dl-date { font-size:13px; font-weight:700; color:#333; }
+.dash-cal-widget .cw-dl-remain { font-size:9px; }
+.dash-cal-widget .cw-arrow { font-size:16px; color:#bfbfbf; }
+.cal-modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.45); z-index:1000; display:flex; align-items:center; justify-content:center; }
+.cal-modal { background:#fff; border-radius:12px; width:480px; max-height:80vh; overflow-y:auto; padding:20px 24px; box-shadow:0 8px 24px rgba(0,0,0,0.15); }
+.cal-modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+.cal-modal-title { font-size:16px; font-weight:700; color:#333; }
+.cal-modal-close { width:28px; height:28px; border-radius:50%; border:none; background:#f5f5f5; cursor:pointer; font-size:14px; display:flex; align-items:center; justify-content:center; color:#8c8c8c; }
+.cal-modal-close:hover { background:#e8e8e8; }
+.cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; }
+.cal-weekday { font-size:10px; color:#bfbfbf; text-align:center; padding:6px 0; font-weight:500; }
+.cal-day { aspect-ratio:1; border-radius:8px; display:flex; flex-direction:column; align-items:center; justify-content:center; font-size:13px; font-weight:500; color:#333; position:relative; }
+.cal-day.other-month { color:#e8e8e8; }
+.cal-day.today { background:#e6f7ff; border:2px solid #1890ff; font-weight:700; }
+.cal-day.event { font-weight:700; }
+.cal-day .cd-dot { width:5px; height:5px; border-radius:50%; margin:2px auto 0; }
+.cal-day .cd-dot.vat { background:#1890ff; }
+.cal-day .cd-dot.personal { background:#faad14; }
+.cal-day .cd-dot.corp { background:#52c41a; }
+.cal-day .cd-dot.multi { background:#f5222d; }
+.cal-legend { display:flex; gap:16px; margin-top:12px; font-size:11px; color:#8c8c8c; justify-content:center; padding-top:10px; border-top:1px solid #f0f0f0; }
+.cal-legend span { display:flex; align-items:center; gap:4px; }
+.cal-legend .dot { width:7px; height:7px; border-radius:50%; display:inline-block; }
+</style>
+</head>
+<body>
+<div class="app-container">
+    <div class="left-panel">
+        <div class="org-info">
+            <div class="org-icon">BX</div>
+            <div class="org-detail">
+                <div class="org-name">百仟 · AI财税运营中心</div>
+                <div class="org-version">AI CFO · v1.0</div>
+            </div>
+        </div>
+        <div class="nav-menu">
+            <div class="nav-item alert-nav" onclick="switchModule('风险',this)" data-module="风险">
+                <span class="nav-icon">&#x26A0;&#xFE0F;</span><span class="nav-label">异常预警</span><span class="nav-badge" style="background:#f5222d;">45</span>
+            </div>
+            <div class="nav-item active" onclick="switchModule('dashboard',this)" data-module="dashboard">
+                <span class="nav-icon">&#x1F4CA;</span><span class="nav-label">驾驶舱</span>
+            </div>
+            <div class="nav-item" onclick="switchModule('进项',this)" data-module="进项">
+                <span class="nav-icon">&#x1F4C4;</span><span class="nav-label">进项管理</span>
+            </div>
+            <div class="nav-item" onclick="switchModule('申报',this)" data-module="申报">
+                <span class="nav-icon">&#x1F4CB;</span><span class="nav-label">申报管理</span>
+            </div>
+            <div class="nav-item" onclick="switchModule('销项',this)" data-module="销项">
+                <span class="nav-icon">&#x1F4E4;</span><span class="nav-label">销项管理</span>
+            </div>
+            <div class="nav-item" onclick="switchModule('风险',this)" data-module="风险">
+                <span class="nav-icon">&#x26A0;&#xFE0F;</span><span class="nav-label">风险监控</span>
+            </div>
+            <div class="nav-item" onclick="sendChat('生成月度报告')">
+                <span class="nav-icon">&#x1F4DD;</span><span class="nav-label">报告中心</span>
+            </div>
+        </div>
+        <div class="nav-divider"></div>
+        <div class="nav-group-label">扩展</div>
+        <div class="nav-menu">
+            <div class="nav-item"><span class="nav-icon">&#x1F527;</span><span class="nav-label">插件管理</span></div>
+            <div class="nav-item"><span class="nav-icon">&#x1F916;</span><span class="nav-label">智能体管理</span></div>
+            <div class="nav-item"><span class="nav-icon">&#x1F4DA;</span><span class="nav-label">知识库</span></div>
+        </div>
+        <div class="nav-divider"></div>
+        <div class="nav-group-label">对话记录</div>
+        <div class="history-list" id="historyList">
+            <div class="history-item active" onclick="loadHistory('进项管理分析')"><div class="h-dot" style="background:#1890ff;"></div><span>进项管理分析</span></div>
+            <div class="history-item" onclick="loadHistory('风险扫描报告')"><div class="h-dot" style="background:#f5222d;"></div><span>风险扫描报告</span></div>
+            <div class="history-item" onclick="loadHistory('申报预测复核')"><div class="h-dot" style="background:#faad14;"></div><span>申报预测复核</span></div>
+            <div class="history-item" onclick="loadHistory('销项数据核对')"><div class="h-dot" style="background:#52c41a;"></div><span>销项数据核对</span></div>
+            <div class="history-item" onclick="loadHistory('供应商合规分析')"><div class="h-dot" style="background:#722ed1;"></div><span>供应商合规分析</span></div>
+        </div>
+    </div>
+    <div class="center-content" id="centerContent">
+    <div id="view-dashboard" class="module-view">
+        <div class="dash-banner">
+            <div class="dash-banner-left">
+                <div class="dash-banner-title">&#x1F3C6; 集团健康总览</div>
+                <div class="dash-banner-stats">
+                    <div class="dash-stat-item"><span class="dash-stat-label">健康评分</span><span class="dash-stat-value" id="dashHealthScore">--</span></div>
+                    <div class="dash-stat-item"><span class="dash-stat-label">今日待处理</span><span class="dash-stat-value" id="dashPendingCount">--</span></div>
+                    <div class="dash-stat-item"><span class="dash-stat-label">距申报截止</span><span class="dash-stat-value" id="dashDeadline">--</span></div>
+                </div>
+                <div class="dash-banner-trend" id="dashTrend">--</div>
+            </div>
+            <div class="dash-banner-right">
+                <div class="dash-module-link" onclick="switchModule('进项',document.querySelector('[data-module=\u0022进项\u0022]'))">&#x1F4C4; 进项管理 →</div>
+                <div class="dash-module-link" onclick="switchModule('销项',document.querySelector('[data-module=\u0022销项\u0022]'))">&#x1F4E4; 销项管理 →</div>
+                <div class="dash-module-link" onclick="switchModule('申报',document.querySelector('[data-module=\u0022申报\u0022]'))">&#x1F4CB; 申报管理 →</div>
+                <div class="dash-module-link" onclick="switchModule('风险',document.querySelector('[data-module=\u0022风险\u0022]'))">&#x26A0;&#xFE0F; 风险监控 →</div>
+            </div>
+        </div>
+        <div class="dash-cal-widget" id="dashTaxCalendar" onclick="showFullCalendar()"></div>
+        <div class="dash-dim-row" id="dashDimensions"></div>
+        <div class="dash-section" id="dashTodayTasks">
+            <div class="dash-section-title">&#x1F534; 今日重点关注</div>
+            <div id="dashTodayBody"></div>
+        </div>
+        <div class="dash-section" id="dashRegionMap">
+            <div class="dash-section-title">&#x1F3E2; 区域风险地图</div>
+            <div class="dash-region-grid" id="dashRegionBody"></div>
+        </div>
+        <div class="dash-section" id="dashTrends">
+            <div class="dash-section-title">&#x1F4C8; 本周趋势</div>
+            <div class="dash-trend-grid" id="dashTrendBody"></div>
+        </div>
+        <div class="dash-section">
+            <div class="dash-section-title">&#x26A1; 快捷入口</div>
+            <div class="dash-quick-grid">
+                <div class="dash-quick-item" onclick="batchCertifyHighRisk()"><span class="qi-icon">&#x26A1;</span><span class="qi-label">一键认证</span><span class="qi-sub">进项</span></div>
+                <div class="dash-quick-item" onclick="sendChat('生成月度税务健康报告')"><span class="qi-icon">&#x1F4C4;</span><span class="qi-label">生成月报</span><span class="qi-sub">全模块</span></div>
+                <div class="dash-quick-item" onclick="sendChat('发送对账催办通知')"><span class="qi-icon">&#x1F4E7;</span><span class="qi-label">发送催办</span><span class="qi-sub">销项/进项</span></div>
+                <div class="dash-quick-item" onclick="sendChat('生成当前健康评分报告')"><span class="qi-icon">&#x1F4CA;</span><span class="qi-label">健康报告</span><span class="qi-sub">全模块</span></div>
+                <div class="dash-quick-item" onclick="exportCertifyList()"><span class="qi-icon">&#x1F4E4;</span><span class="qi-label">导出清单</span><span class="qi-sub">进项</span></div>
+            </div>
+        </div>
+    </div>
+    <div id="view-进项" class="module-view" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <h2 style="font-size:16px;margin:0;">&#x1F4C4; 进项管理</h2>
+            <div class="inv-search-wrapper">
+                <input id="invSearchInput" class="inv-search-input" placeholder="搜索公司、供应商、发票号..." onkeyup="searchInvoices(this.value)">
+                <div id="invSearchDropdown" class="inv-search-dropdown"></div>
+            </div>
+        </div>
+        <div id="todayTasksContainer" class="inv-section"></div>
+        <div id="healthOverview" class="inv-section"></div>
+        <div id="abnormalCompanies" class="inv-section"></div>
+        <div id="urgencyRanking" class="inv-section"></div>
+        <div id="supplierRiskTracking" class="inv-section"></div>
+        <div id="smartSuggestions" class="inv-section"></div>
+    </div>
+    <div id="view-申报" class="module-view" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <h2 style="font-size:16px;margin:0;">&#x1F4CB; 申报管理</h2>
+                <span style="font-size:11px;color:#8c8c8c;">征期：2026年7月</span>
+            </div>
+            <div style="display:flex;gap:8px;">
+                <div class="v2-action-btn" onclick="sendChat('生成申报底稿')">&#x1F4CB; 生成申报底稿</div>
+                <div class="v2-action-btn" onclick="sendChat('导出未申报清单')">&#x1F4E4; 导出未申报清单</div>
+            </div>
+        </div>
+        <div class="decl-period-bar" id="taxPeriodBar"></div>
+        <div class="decl-progress-row" id="declProgress"></div>
+        <div class="decl-health-row" id="declHealth"></div>
+        <div class="decl-section">
+            <div class="decl-section-title">&#x1F3E2; 公司申报状态清单 · 增值税</div>
+            <div class="decl-filter-bar" id="declFilterBar">
+                <span class="decl-filter-tag active" onclick="filterDeclCompanies('all',this)">全部 600</span>
+                <span class="decl-filter-tag emerg" onclick="filterDeclCompanies('pending',this)">待申报 23</span>
+                <span class="decl-filter-tag emerg" onclick="filterDeclCompanies('abnormal',this)">异常 5</span>
+                <span class="decl-filter-tag" onclick="filterDeclCompanies('completed',this)">已申报 577</span>
+                <input class="decl-search-input" placeholder="搜索公司名..." onkeyup="searchDeclCompany(this.value)" style="margin-left:auto;">
+            </div>
+            <table class="decl-table" id="declCompanyTable"></table>
+        </div>
+        <div class="decl-section" id="declAnomalies"></div>
+        <div class="decl-section" id="declIODiff"></div>
+        <div class="decl-section" id="declTrends"></div>
+    </div>
+    <div id="view-销项" class="module-view" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <h2 style="font-size:16px;margin:0;">&#x1F4E4; 销项管理</h2>
+            <div style="font-size:11px;color:#8c8c8c;">增值税·当月</div>
+        </div>
+        <div id="salesTasksContainer" class="sls-section"></div>
+        <div id="salesHealthOverview" class="sls-section"></div>
+        <div id="fraudRiskMonitoring" class="sls-section"></div>
+        <div id="redInvoiceMonitoring" class="sls-section"></div>
+        <div id="internalTransactions" class="sls-section"></div>
+        <div id="platformReconciliation" class="sls-section"></div>
+        <div id="complianceMonitoring" class="sls-section"></div>
+        <div id="salesSuggestions" class="sls-section"></div>
+    </div>
+    <div id="view-风险" class="module-view" style="display:none;">
+        <div style="padding:20px;text-align:center;color:#8c8c8c;">&#x26A0;&#xFE0F; 风险监控模块</div>
+    </div>
+    </div>
+    <div class="right-panel" id="rightPanel">
+        <div class="chat-header" id="chatHeaderText">AI 财务助手</div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="chat-msg ai">
+                <div class="cm-avatar">AI</div>
+                <div class="cm-content">
+                    <div class="cm-text">你好！我是你的AI财务助手，可以帮你分析各类财税数据。有什么可以帮你的？</div>
+                </div>
+            </div>
+        </div>
+        <div class="chat-input-area">
+            <input class="chat-input" id="chatInput" placeholder="输入你的问题..." onkeydown="if(event.key==='Enter')sendChat(this.value)">
+            <div class="chat-send" onclick="sendChat(document.getElementById('chatInput').value)">发送</div>
+        </div>
+    </div>
+</div>
+<script>
+function loadKpiData() {}
+function executeSuggestion(action) { console.log('Execute:', action); }
+function exportCertifyList() { alert('待认证清单已生成'); }
+function batchCertifyHighRisk() { alert('认证任务已提交'); }
+function showKPIDetail(t, c) {}
+function sendChat(text) {
+    if (!text || !text.trim()) return;
+    var input = document.getElementById('chatInput');
+    if (input) input.value = '';
+    var msgs = document.getElementById('chatMessages');
+    var userMsg = document.createElement('div');
+    userMsg.className = 'chat-msg user';
+    userMsg.innerHTML = '<div class="cm-content"><div class="cm-text">' + text + '</div></div>';
+    msgs.appendChild(userMsg);
+    setTimeout(function(){
+        var aiMsg = document.createElement('div');
+        aiMsg.className = 'chat-msg ai';
+        aiMsg.innerHTML = '<div class="cm-avatar">AI</div><div class="cm-content"><div class="cm-text">已收到：' + text + '。我已开始处理，请稍候...</div></div>';
+        msgs.appendChild(aiMsg);
+        msgs.scrollTop = msgs.scrollHeight;
+    }, 300);
+    msgs.scrollTop = msgs.scrollHeight;
+}
+function loadHistory(name) { sendChat('加载历史记录：' + name); }
+renderDashboard();
+
+function switchModule(module, navEl) {
+    document.querySelectorAll('.module-view').forEach(function(v) { v.style.display = 'none'; });
+    var viewId = module === 'dashboard' ? 'view-dashboard' : 'view-' + module;
+    var view = document.getElementById(viewId);
+    if (view) view.style.display = '';
+    document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+    if (navEl) navEl.classList.add('active');
+    if (module === 'dashboard') renderDashboard();
+    if (module === '进项') renderInvoiceModule();
+    if (module === '销项') renderSalesModule();
+    if (module === '申报') renderDeclarationModule();
+}
+</script>
+</body>
+</html>
