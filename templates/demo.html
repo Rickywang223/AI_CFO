@@ -206,6 +206,69 @@ const TAX_PERIOD = {
         { type: '\u4f01\u4e1a\u6240\u5f97\u7a0e', deadline: '2026-07-18', daysLeft: 15, totalCompanies: 600, completedCount: 555, pendingCount: 45, completionRate: 92.5, status: 'in_progress' },
     ],
 };
+// ===== V2 Risk Monitoring Data =====
+const REGION_DATA = [
+    { id: 'huadong', name: '华东区域', companies: 180, abnormal: 18, highRisk: 3, midRisk: 8, lowRisk: 7, riskRate: '10.0%', trend: 'up', trendLabel: '↑↑' },
+    { id: 'huanan', name: '华南区域', companies: 98, abnormal: 8, highRisk: 0, midRisk: 4, lowRisk: 4, riskRate: '8.2%', trend: 'flat', trendLabel: '→' },
+    { id: 'huabei', name: '华北区域', companies: 112, abnormal: 7, highRisk: 0, midRisk: 3, lowRisk: 4, riskRate: '6.2%', trend: 'down', trendLabel: '↓' },
+    { id: 'huazhong', name: '华中区域', companies: 156, abnormal: 4, highRisk: 0, midRisk: 2, lowRisk: 2, riskRate: '2.6%', trend: 'down', trendLabel: '↓' },
+    { id: 'touzi', name: '投资公司', companies: 54, abnormal: 8, highRisk: 0, midRisk: 4, lowRisk: 4, riskRate: '14.8%', trend: 'flat', trendLabel: '→' },
+];
+const TOP_RISK_COMPANIES = [
+    { rank: 1, name: '华东·上海XX路店', region: '华东', score: 32, level: 'high', mainIssue: '合规率32%', loss: '52万' },
+    { rank: 2, name: '华东·南京XX路店', region: '华东', score: 41, level: 'high', mainIssue: '认证率18%', loss: '38万' },
+    { rank: 3, name: '投资公司', region: '投资公司', score: 45, level: 'high', mainIssue: '发票异常', loss: '30万' },
+    { rank: 4, name: '华东·苏州XX路店', region: '华东', score: 48, level: 'mid', mainIssue: '供应商风险12%', loss: '25万' },
+    { rank: 5, name: '华南·广州XX路店', region: '华南', score: 52, level: 'mid', mainIssue: '税负偏低', loss: '18万' },
+];
+const RECENT_ALERTS = [
+    { time: '10:32', company: '华东·上海XX路店', level: 'high', summary: '大额发票未认证X张', region: '华东' },
+    { time: '09:15', company: '投资公司', level: 'mid', summary: '集采供应商异常', region: '投资公司' },
+    { time: '08:40', company: '华南·广州XX路店', level: 'mid', summary: '税负率偏低', region: '华南' },
+];
+const COMPANY_RISK_DETAIL = {};
+COMPANY_RISK_DETAIL['华东·上海XX路店'] = { region: '华东', score: 32, level: 'high', kpi: { invoices: 12340, certRate: '28%', complianceRate: '32%', healthScore: 32, loss: '52万', supplierRisk: '8.1%' }, risks: [{ level: 'P0', title: '大额发票未认证 47张 >100万', status: '待处理' },{ level: 'P0', title: '明确不合规发票 234张', status: '处置中' },{ level: 'P1', title: '供应商风险偏高 雪峰12.3%', status: '待处理' },{ level: 'P2', title: '认证效率偏低 28%', status: '待处理' }] };
+COMPANY_RISK_DETAIL['华东·南京XX路店'] = { region: '华东', score: 41, level: 'high', kpi: { invoices: 8920, certRate: '18%', complianceRate: '45%', healthScore: 41, loss: '38万', supplierRisk: '5.2%' }, risks: [{ level: 'P0', title: '认证率18% 超90天47张', status: '处置中' },{ level: 'P1', title: '供应商风险偏高', status: '待处理' }] };
+COMPANY_RISK_DETAIL['投资公司'] = { region: '投资公司', score: 45, level: 'high', kpi: { invoices: 4560, certRate: '62%', complianceRate: '72%', healthScore: 68, loss: '30万', supplierRisk: '2.1%' }, risks: [{ level: 'P0', title: '发票异常 第三方平台凭证', status: '待处理' }] };
+
+// ===== V3 Compliance Check Data =====
+const COMPLIANCE_CHECK = {
+    companyId: 'shanghai-xx-road', checkDate: '2026年7月',
+    summary: { total: 83, high: 2, mid: 49, low: 32, rating: '中等风险' },
+    categories: [
+        { name: '发票风险', icon: '📄', items: [
+            { level: 'high', title: '进项风险发票(异常凭证)', desc: '2张异常凭证', detail: '共2张异常发票..义乌市碧火电子..西安博特汽车美容..', suggestions: ['核实发票真实性', '异常凭证做进项转出'], policy: '《异常增值税扣税凭证管理》' },
+            { level: 'mid', title: '保险特殊类发票合规风险', desc: '金额12,492元' }, { level: 'mid', title: '服装商品发票合规风险', desc: '金额18,521元' },
+            { level: 'mid', title: '运费与增值税占比变动率偏高' }, { level: 'low', title: '发票税号与企业名不匹配' },
+            { level: 'low', title: '当期大量红废发票' }, { level: 'mid', title: '代开发票风险' },
+        ]},
+        { name: '增值税风险', icon: '💰', items: [
+            { level: 'mid', title: '申报表附表一扣除金额异常' }, { level: 'mid', title: '其他扣税凭证金额异常' },
+            { level: 'mid', title: '未开具发票金额填写异常' }, { level: 'mid', title: '销售额与应纳税额配比异常' },
+            { level: 'mid', title: '进项税增长但销项税下降' }, { level: 'mid', title: '应收账款增长率大于销售增长率' },
+            { level: 'mid', title: '毛利率与税负变动率配比异常' }, { level: 'mid', title: '增值税税负率偏低' },
+        ]},
+        { name: '企业所得税风险', icon: '🏢', items: [
+            { level: 'mid', title: '增值税与企业税收入差异比对' }, { level: 'mid', title: '成本费用利润率异常' },
+            { level: 'mid', title: '营业成本未足额取得发票' }, { level: 'mid', title: '固定资产折旧申报异常' },
+            { level: 'mid', title: '研发费用填报异常' }, { level: 'mid', title: '财报资产减少未体现处置利得' },
+        ]},
+        { name: '其他税种风险', icon: '📊', items: [
+            { level: 'mid', title: '印花税合同计税差异' }, { level: 'high', title: '房产税账载与税源差异' },
+        ]},
+        { name: '财务风险', icon: '📊', items: [
+            { level: 'mid', title: '应收账款余额占比偏高' }, { level: 'mid', title: '经营活动现金流异常' },
+        ]},
+        { name: '履约风险', icon: '🤝', items: [
+            { level: 'mid', title: '跨境服务无扣缴记录' },
+        ]},
+        { name: '上下游企业风险', icon: '🏭', items: [
+            { level: 'mid', title: '供应商税收违法信息' }, { level: 'mid', title: '客户税收违法信息' },
+        ]},
+    ]
+};
+
+
 
 const DECLARATION_COMPANIES = [
     { name: '\u534e\u4e2d\u00b7\u7b2c1\u5206\u516c\u53f8', region: '\u534e\u4e2d\u533a\u57df', taxType: '\u589e\u503c\u7a0e', status: 'abnormal', estimatedTax: 235000, actualTax: null, deadline: '2026-07-15', anomaly: '\u7a0e\u8d1f\u73870.5%\uff08\u884c\u4e1a\u57fa\u51c65-7%\uff09' },
@@ -844,6 +907,180 @@ function renderDeclTrends() {
 }
 
 // ===== Dashboard v2 =====
+
+/* ===== Risk Module V2+V3 Functions ===== */
+var _expandedCategories = {};
+
+function renderRiskModule() {
+    var h = '';
+    h += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">';
+    h += '<h2 style="font-size:16px;margin:0;">⚠️ 风险监控</h2>';
+    h += '<div style="font-size:12px;color:#8c8c8c;">扫描：600/600家 ✔️ 今日更新</div></div>';
+    h += '<div class="dash-dim-row" style="margin-bottom:14px;">';
+    h += '<div class="dash-dim-card" onclick="showRiskKPI(\'abnormal\')" style="cursor:pointer;border-left:3px solid #f5222d;"><div style="font-size:10px;color:#8c8c8c;">🏢 异常公司</div><div style="font-size:22px;font-weight:700;color:#f5222d;">45</div><div style="font-size:10px;color:#8c8c8c;">/ 600家 • 7.5%</div></div>';
+    h += '<div class="dash-dim-card" onclick="showRiskKPI(\'highrisk\')" style="cursor:pointer;border-left:3px solid #faad14;"><div style="font-size:10px;color:#8c8c8c;">🔴 高风险公司</div><div style="font-size:22px;font-weight:700;color:#faad14;">3</div><div style="font-size:10px;color:#8c8c8c;">需立即处置</div></div>';
+    h += '<div class="dash-dim-card" onclick="showRiskKPI(\'loss\')" style="cursor:pointer;border-left:3px solid #1890ff;"><div style="font-size:10px;color:#8c8c8c;">💰 预估损失</div><div style="font-size:22px;font-weight:700;color:#1890ff;">~640万</div><div style="font-size:10px;color:#8c8c8c;">待确认</div></div>';
+    h += '<div class="dash-dim-card" onclick="showRiskKPI(\'disposal\')" style="cursor:pointer;border-left:3px solid #52c41a;"><div style="font-size:10px;color:#8c8c8c;">📈 处置率</div><div style="font-size:22px;font-weight:700;color:#52c41a;">26.7%</div><div style="font-size:10px;color:#8c8c8c;">偏低</div></div></div>';
+    h += '<div class="dash-section"><div class="dash-section-title">📍 按区域分布</div><table style="width:100%;border-collapse:collapse;font-size:12px;"><tr style="color:#8c8c8c;font-size:10px;"><th style="text-align:left;padding:4px 8px;border-bottom:1px solid #f0f0f0;">区域</th><th style="text-align:right;padding:4px 8px;border-bottom:1px solid #f0f0f0;">公司数</th><th style="text-align:right;padding:4px 8px;border-bottom:1px solid #f0f0f0;">异常数</th><th style="text-align:right;padding:4px 8px;border-bottom:1px solid #f0f0f0;">风险率</th><th style="text-align:center;padding:4px 8px;border-bottom:1px solid #f0f0f0;">趋势</th><th style="text-align:center;padding:4px 8px;border-bottom:1px solid #f0f0f0;">操作</th></tr>';
+    REGION_DATA.forEach(function(r) {
+        var rc = r.riskRate > 10 ? '#f5222d' : (r.riskRate > 5 ? '#faad14' : '#52c41a');
+        h += '<tr style="cursor:pointer;" onclick="showRegionDrill(\'' + r.id + '\')" onmouseover="this.style.background=\'#f5f5f5\'" onmouseout="this.style.background=\'\'">';
+        h += '<td style="padding:8px;border-bottom:1px solid #f0f0f0;font-weight:500;"><span style="color:' + rc + ';">●</span> ' + r.name + '</td>';
+        h += '<td style="text-align:right;padding:8px;border-bottom:1px solid #f0f0f0;">' + r.companies + '</td>';
+        h += '<td style="text-align:right;padding:8px;border-bottom:1px solid #f0f0f0;color:' + rc + ';font-weight:600;">' + r.abnormal + '</td>';
+        h += '<td style="text-align:right;padding:8px;border-bottom:1px solid #f0f0f0;color:' + rc + ';">' + r.riskRate + '</td>';
+        h += '<td style="text-align:center;padding:8px;border-bottom:1px solid #f0f0f0;">' + (r.trend === 'up' ? '🔼' : (r.trend === 'down' ? '🔽' : '▶️')) + '</td>';
+        h += '<td style="text-align:center;padding:8px;border-bottom:1px solid #f0f0f0;"><span style="color:#1890ff;font-size:10px;">[查看]</span></td></tr>';
+    });
+    h += '</table></div>';
+    h += '<div class="dash-section"><div class="dash-section-title">🔥 风险TOP 5公司</div>';
+    TOP_RISK_COMPANIES.forEach(function(c) {
+        var lc = c.level === 'high' ? '#f5222d' : '#faad14';
+        h += '<div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0;cursor:pointer;" onclick="showCompanyDetail(\'' + c.name + '\')" onmouseover="this.style.background=\'#fafafa\'" onmouseout="this.style.background=\'\'">';
+        h += '<div style="width:20px;font-size:10px;color:#8c8c8c;font-weight:600;">' + c.rank + '</div>';
+        h += '<div style="flex:1;"><div style="font-size:12px;font-weight:500;">' + c.name + '</div><div style="font-size:10px;color:#8c8c8c;">' + c.mainIssue + '</div></div>';
+        h += '<div style="text-align:right;"><div style="font-size:14px;font-weight:700;color:' + lc + ';">' + c.score + '</div><div style="font-size:9px;color:#8c8c8c;">损失' + c.loss + '</div></div></div>';
+    });
+    h += '</div>';
+    h += '<div class="dash-section"><div class="dash-section-title">📋 最新异常公司（今日新增）</div>';
+    RECENT_ALERTS.forEach(function(a) {
+        var ac = a.level === 'high' ? '#f5222d' : '#faad14';
+        h += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f0f0f0;cursor:pointer;" onclick="showCompanyDetail(\'' + a.company + '\')">';
+        h += '<div style="font-size:10px;color:#8c8c8c;min-width:40px;">' + a.time + '</div>';
+        h += '<div style="width:8px;height:8px;border-radius:50%;background:' + ac + ';flex-shrink:0;"></div>';
+        h += '<div style="flex:1;"><span style="font-size:12px;font-weight:500;">' + a.company + '</span><span style="font-size:10px;color:#8c8c8c;margin-left:8px;">' + a.summary + '</span></div></div>';
+    });
+    h += '</div>';
+    document.getElementById('view-\u98ce\u9669').innerHTML = h;
+}
+
+function showRiskKPI(type) {
+    var h = '';
+    if (type === 'abnormal') {
+        h = '<div class="cal-modal" style="width:560px;"><div class="cal-modal-header"><div class="cal-modal-title">🏢 异常公司清单(45家)</div><button class="cal-modal-close" onclick="closeRiskDrill()">✕</button></div>';
+        REGION_DATA.forEach(function(r) {
+            h += '<div style="font-size:12px;font-weight:600;color:#333;margin:10px 0 6px;">' + r.name + '(' + r.abnormal + '家)</div>';
+            for (var i = 0; i < Math.min(r.abnormal, 3); i++) {
+                h += '<div style="display:flex;justify-content:space-between;padding:4px 0;font-size:12px;border-bottom:1px solid #f5f5f5;"><span>⚠️ XX路店' + (i+1) + '</span><span style="color:#8c8c8c;font-size:10px;">风险' + (60 - i*8) + '分</span></div>';
+            }
+        });
+        h += '<div style="margin-top:10px;text-align:center;"><span style="font-size:10px;color:#1890ff;cursor:pointer;padding:4px 12px;border:1px solid #1890ff;border-radius:4px;">📤 导出清单</span></div></div>';
+    } else if (type === 'highrisk') {
+        h = '<div class="cal-modal" style="width:560px;"><div class="cal-modal-header"><div class="cal-modal-title">🔴 高风险公司(3家)</div><button class="cal-modal-close" onclick="closeRiskDrill()">✕</button></div>';
+        TOP_RISK_COMPANIES.slice(0,3).forEach(function(c) {
+            h += '<div style="border:1px solid #ffccc7;border-radius:8px;padding:10px;margin-bottom:8px;background:#fff2f0;"><div style="display:flex;justify-content:space-between;"><span style="font-weight:600;font-size:12px;">' + c.name + '</span><span style="background:#f5222d;color:#fff;padding:0 8px;border-radius:10px;font-size:10px;">' + c.score + '</span></div>';
+            h += '<div style="font-size:10px;color:#8c8c8c;margin:4px 0;">损失' + c.loss + '</div>';
+            h += '<div style="display:flex;gap:8px;"><span style="font-size:10px;color:#1890ff;cursor:pointer;padding:2px 8px;border:1px solid #1890ff;border-radius:4px;">📄 查看详情</span><span style="font-size:10px;color:#f5222d;cursor:pointer;padding:2px 8px;border:1px solid #f5222d;border-radius:4px;">⚡ 立即处置</span></div></div>';
+        });
+        h += '<div style="margin-top:8px;text-align:center;"><span style="font-size:10px;color:#f5222d;cursor:pointer;padding:4px 12px;border:1px solid #f5222d;border-radius:4px;">⚡ 一键处理全部高风险</span></div></div>';
+    } else if (type === 'loss') {
+        h = '<div class="cal-modal" style="width:560px;"><div class="cal-modal-header"><div class="cal-modal-title">💰 预估损失明细</div><button class="cal-modal-close" onclick="closeRiskDrill()">✕</button></div>';
+        h += '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;"><div><div style="font-size:12px;font-weight:500;">超期认证损失</div><div style="font-size:10px;color:#8c8c8c;">超90天未认证约70万张</div></div><div style="text-align:right;"><div style="font-size:14px;font-weight:700;color:#f5222d;">~280万</div><div style="font-size:10px;color:#8c8c8c;">43.8%</div></div></div>';
+        h += '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;"><div><div style="font-size:12px;font-weight:500;">不合规发票罚款</div><div style="font-size:10px;color:#8c8c8c;">3,573张不合规发票</div></div><div style="text-align:right;"><div style="font-size:14px;font-weight:700;color:#faad14;">~160万</div><div style="font-size:10px;color:#8c8c8c;">25.0%</div></div></div>';
+        h += '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;"><div><div style="font-size:12px;font-weight:500;">供应商风险敞口</div><div style="font-size:10px;color:#8c8c8c;">雪峰/合炘供应链</div></div><div style="text-align:right;"><div style="font-size:14px;font-weight:700;color:#1890ff;">~120万</div><div style="font-size:10px;color:#8c8c8c;">18.8%</div></div></div>';
+        h += '<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f0f0f0;"><div><div style="font-size:12px;font-weight:500;">美团平台费异常</div><div style="font-size:10px;color:#8c8c8c;">2025年12月异常月份</div></div><div style="text-align:right;"><div style="font-size:14px;font-weight:700;color:#faad14;">~80万</div><div style="font-size:10px;color:#8c8c8c;">12.5%</div></div></div>';
+        h += '<div style="display:flex;justify-content:space-between;padding:10px 0;font-weight:700;font-size:14px;border-top:1px solid #f0f0f0;"><span>合计</span><span style="color:#f5222d;">~640万</span></div></div>';
+    } else if (type === 'disposal') {
+        h = '<div class="cal-modal" style="width:560px;"><div class="cal-modal-header"><div class="cal-modal-title">📈 处置进度</div><button class="cal-modal-close" onclick="closeRiskDrill()">✕</button></div>';
+        h += '<div style="font-size:11px;color:#8c8c8c;margin-bottom:10px;">总风险项：45家公司的103项</div>';
+        h += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;"><div style="width:60px;font-size:12px;color:#52c41a;">已处理</div><div style="flex:1;height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden;"><div style="height:100%;width:11.7%;background:#52c41a;border-radius:4px;"></div></div><div style="text-align:right;"><div style="font-size:13px;font-weight:600;">12</div><div style="font-size:9px;color:#8c8c8c;">11.7%</div></div></div>';
+        h += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;"><div style="width:60px;font-size:12px;color:#1890ff;">处置中</div><div style="flex:1;height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden;"><div style="height:100%;width:14.6%;background:#1890ff;border-radius:4px;"></div></div><div style="text-align:right;"><div style="font-size:13px;font-weight:600;">15</div><div style="font-size:9px;color:#8c8c8c;">14.6%</div></div></div>';
+        h += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;"><div style="width:60px;font-size:12px;color:#f5222d;">待处理</div><div style="flex:1;height:8px;background:#f0f0f0;border-radius:4px;overflow:hidden;"><div style="height:100%;width:73.8%;background:#f5222d;border-radius:4px;"></div></div><div style="text-align:right;"><div style="font-size:13px;font-weight:600;">76</div><div style="font-size:9px;color:#8c8c8c;">73.8%</div></div></div>';
+        h += '<div style="border-top:1px solid #f0f0f0;padding:8px 0;font-size:11px;"><span style="color:#8c8c8c;">趋势：上周21.2% → 本周26.7% </span><span style="color:#52c41a;font-weight:600;">↑ +5.5%</span></div></div>';
+    }
+    var overlay = document.createElement('div');
+    overlay.className = 'cal-modal-overlay'; overlay.id = 'riskDrillOverlay';
+    overlay.onclick = function(e) { if (e.target === this) this.remove(); };
+    overlay.innerHTML = h;
+    document.body.appendChild(overlay);
+}
+function closeRiskDrill() { var m = document.getElementById('riskDrillOverlay'); if (m) m.remove(); }
+
+function showRegionDrill(regionId) {
+    var r = REGION_DATA.find(function(x) { return x.id === regionId; });
+    if (!r) return;
+    var h = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;"><h2 style="font-size:16px;margin:0;">⚠️ ' + r.name + ' · ' + r.companies + '家公司</h2><span style="font-size:11px;color:#1890ff;cursor:pointer;padding:4px 10px;border:1px solid #1890ff;border-radius:4px;" onclick="renderRiskModule()">🔙 返回集团看板</span></div>';
+    h += '<div style="display:flex;gap:8px;margin-bottom:14px;"><div style="background:#fff2f0;border:1px solid #ffccc7;border-radius:8px;padding:8px 12px;text-align:center;flex:1;"><div style="font-size:10px;color:#8c8c8c;">🔴 高风险</div><div style="font-size:18px;font-weight:700;color:#f5222d;">' + r.highRisk + '</div></div><div style="background:#fffbe6;border:1px solid #ffe7ba;border-radius:8px;padding:8px 12px;text-align:center;flex:1;"><div style="font-size:10px;color:#8c8c8c;">⚠️ 中风险</div><div style="font-size:18px;font-weight:700;color:#faad14;">' + r.midRisk + '</div></div><div style="background:#f6ffed;border:1px solid #b7eb8f;border-radius:8px;padding:8px 12px;text-align:center;flex:1;"><div style="font-size:10px;color:#8c8c8c;">🟡 低风险</div><div style="font-size:18px;font-weight:700;color:#faad14;">' + r.lowRisk + '</div></div><div style="background:#f0f5ff;border:1px solid #91caff;border-radius:8px;padding:8px 12px;text-align:center;flex:1;"><div style="font-size:10px;color:#8c8c8c;">🟢 正常</div><div style="font-size:18px;font-weight:700;color:#52c41a;">' + (r.companies - r.abnormal) + '</div></div></div>';
+    h += '<div class="dash-section"><div class="dash-section-title">🏢 风险公司列表</div>';
+    for (var i = 0; i < Math.min(r.abnormal, 5); i++) {
+        var score = 32 + i * 8; var level = score < 50 ? 'high' : 'mid'; var lc = level === 'high' ? '#f5222d' : '#faad14';
+        h += '<div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0;"><div style="width:6px;height:6px;border-radius:50%;background:' + lc + ';margin-right:10px;flex-shrink:0;"></div><div style="flex:1;"><div style="font-size:12px;">' + r.name + 'XX路店' + (i+1) + '</div></div><div style="font-size:12px;font-weight:600;color:' + lc + ';">' + score + '</div></div>';
+    }
+    h += '</div>';
+    document.getElementById('view-\u98ce\u9669').innerHTML = h;
+}
+
+function showCompanyDetail(name) {
+    var d = COMPANY_RISK_DETAIL[name] || { region: '未知', score: 50, level: 'mid', kpi: {invoices:5000,certRate:'50%',complianceRate:'60%',healthScore:60,loss:'10万',supplierRisk:'3%'}, risks: [{level:'P1',title:'待检测',status:'待处理'}] };
+    var lc = d.level === 'high' ? '#f5222d' : '#faad14';
+    var h = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;"><div><h2 style="font-size:16px;margin:0;">' + name + '</h2><div style="font-size:10px;color:#8c8c8c;margin-top:3px;">' + d.region + ' · 风险评分：' + d.score + '</div></div><span style="font-size:11px;color:#1890ff;cursor:pointer;padding:4px 10px;border:1px solid #1890ff;border-radius:4px;" onclick="renderRiskModule()">🔙 返回集团看板</span></div>';
+    h += '<div style="display:flex;gap:0;margin-bottom:12px;border-bottom:2px solid #e8e8ed;"><div id="tabKPI" style="padding:8px 16px;font-size:12px;cursor:pointer;border-bottom:2px solid #1890ff;color:#1890ff;font-weight:600;" onclick="switchCompanyTab(\'' + name + '\',\'kpi\')">📊 核心KPI</div><div id="tabRisk" style="padding:8px 16px;font-size:12px;cursor:pointer;color:#595959;" onclick="switchCompanyTab(\'' + name + '\',\'risk\')">📋 风险列表</div><div id="tabCompliance" style="padding:8px 16px;font-size:12px;cursor:pointer;color:#595959;" onclick="switchCompanyTab(\'' + name + '\',\'compliance\')">📄 财税合规检测</div></div><div id="companyTabContent">';
+    h += '<div class="dash-dim-row" style="margin-bottom:14px;"><div class="dash-dim-card"><div style="font-size:10px;color:#8c8c8c;">📄 发票数</div><div style="font-size:18px;font-weight:700;">' + d.kpi.invoices.toLocaleString() + '</div></div><div class="dash-dim-card" style="border-left:3px solid ' + (d.kpi.certRate < 50 ? '#f5222d' : '#52c41a') + ';"><div style="font-size:10px;color:#8c8c8c;">✅ 认证率</div><div style="font-size:18px;font-weight:700;">' + d.kpi.certRate + '</div></div><div class="dash-dim-card" style="border-left:3px solid ' + (d.kpi.complianceRate < 60 ? '#f5222d' : '#52c41a') + ';"><div style="font-size:10px;color:#8c8c8c;">🟢 合规率</div><div style="font-size:18px;font-weight:700;">' + d.kpi.complianceRate + '</div></div><div class="dash-dim-card" style="border-left:3px solid ' + lc + ';"><div style="font-size:10px;color:#8c8c8c;">⚡ 健康评分</div><div style="font-size:18px;font-weight:700;">' + d.kpi.healthScore + '/100</div></div></div>';
+    h += '<div class="dash-section" style="margin-top:14px;"><div class="dash-section-title">📋 风险列表</div>';
+    d.risks.forEach(function(r) {
+        h += '<div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0;"><div style="width:36px;font-size:10px;font-weight:600;color:' + (r.level === 'P0' ? '#f5222d' : (r.level === 'P1' ? '#faad14' : '#1890ff')) + ';">' + r.level + '</div><div style="flex:1;font-size:12px;">' + r.title + '</div><div style="font-size:10px;padding:2px 8px;border-radius:4px;background:' + (r.status === '待处理' ? '#f5222d' : '#1890ff') + ';color:#fff;">' + r.status + '</div></div>';
+    });
+    h += '<div style="display:flex;gap:8px;margin-top:10px;"><span style="font-size:10px;color:#f5222d;cursor:pointer;padding:4px 12px;border:1px solid #f5222d;border-radius:4px;">⚡ 一键处理高风险项</span><span style="font-size:10px;color:#1890ff;cursor:pointer;padding:4px 12px;border:1px solid #1890ff;border-radius:4px;">📄 生成本公司风控报告</span></div></div></div>';
+    document.getElementById('view-\u98ce\u9669').innerHTML = h;
+}
+function switchCompanyTab(name, tab) {
+    var els = document.querySelectorAll('[id^="tab"]');
+    els.forEach(function(t) { t.style.borderBottom = '2px solid transparent'; t.style.color = '#595959'; t.style.fontWeight = '400'; });
+    var a = document.getElementById('tab' + tab.charAt(0).toUpperCase() + tab.slice(1));
+    if (a) { a.style.borderBottom = '2px solid #1890ff'; a.style.color = '#1890ff'; a.style.fontWeight = '600'; }
+    var d = COMPANY_RISK_DETAIL[name] || { region: '未知', score: 50, level: 'mid', kpi: {invoices:0,certRate:'0%',complianceRate:'0%',healthScore:0,loss:'0',supplierRisk:'0%'}, risks: [] };
+    var c = document.getElementById('companyTabContent');
+    if (tab === 'compliance') { renderComplianceCheck(name, d, c); }
+    else if (tab === 'risk') { renderCompanyRiskList(name, d, c); }
+    else { renderCompanyKPI(name, d, c); }
+}
+function renderCompanyKPI(name, d, container) {
+    var lc = d.level === 'high' ? '#f5222d' : '#faad14';
+    container.innerHTML = '<div class="dash-dim-row" style="margin-bottom:14px;"><div class="dash-dim-card"><div style="font-size:10px;color:#8c8c8c;">📄 发票数</div><div style="font-size:18px;font-weight:700;">' + (d.kpi.invoices || 0).toLocaleString() + '</div></div><div class="dash-dim-card" style="border-left:3px solid ' + (parseInt(d.kpi.certRate) < 50 ? '#f5222d' : '#52c41a') + ';"><div style="font-size:10px;color:#8c8c8c;">✅ 认证率</div><div style="font-size:18px;font-weight:700;">' + (d.kpi.certRate || '0') + '</div></div><div class="dash-dim-card" style="border-left:3px solid ' + (parseInt(d.kpi.complianceRate) < 60 ? '#f5222d' : '#52c41a') + ';"><div style="font-size:10px;color:#8c8c8c;">🟢 合规率</div><div style="font-size:18px;font-weight:700;">' + (d.kpi.complianceRate || '0') + '</div></div><div class="dash-dim-card" style="border-left:3px solid ' + lc + ';"><div style="font-size:10px;color:#8c8c8c;">⚡ 健康评分</div><div style="font-size:18px;font-weight:700;">' + (d.kpi.healthScore || '0') + '/100</div></div></div>';
+}
+function renderCompanyRiskList(name, d, container) {
+    var h = '<div class="dash-section"><div class="dash-section-title">📋 风险列表</div>';
+    if (d.risks && d.risks.length) { d.risks.forEach(function(r) { h += '<div style="display:flex;align-items:center;padding:8px 0;border-bottom:1px solid #f0f0f0;"><div style="width:36px;font-size:10px;font-weight:600;color:' + (r.level === 'P0' ? '#f5222d' : (r.level === 'P1' ? '#faad14' : '#1890ff')) + ';">' + r.level + '</div><div style="flex:1;font-size:12px;">' + r.title + '</div><div style="font-size:10px;padding:2px 8px;border-radius:4px;background:' + (r.status === '待处理' ? '#f5222d' : '#1890ff') + ';color:#fff;">' + r.status + '</div></div>'; }); }
+    h += '</div>';
+    container.innerHTML = h;
+}
+function renderComplianceCheck(name, d, container) {
+    var c = COMPLIANCE_CHECK;
+    var h = '<div class="dash-section"><div class="dash-section-title" style="display:flex;justify-content:space-between;"><span>📄 财税合规检测报告</span><span style="font-size:10px;color:#8c8c8c;font-weight:400;">' + c.checkDate + ' · ' + name + '</span></div>';
+    h += '<div style="display:flex;gap:12px;margin-bottom:14px;"><div style="text-align:center;flex:1;background:#fff2f0;border-radius:8px;padding:10px;"><div style="font-size:10px;color:#8c8c8c;">检测项</div><div style="font-size:22px;font-weight:700;">' + c.summary.total + '</div></div><div style="text-align:center;flex:1;background:#fff2f0;border-radius:8px;padding:10px;"><div style="font-size:10px;color:#8c8c8c;">🔴 高风险</div><div style="font-size:22px;font-weight:700;color:#f5222d;">' + c.summary.high + '</div></div><div style="text-align:center;flex:1;background:#fffbe6;border-radius:8px;padding:10px;"><div style="font-size:10px;color:#8c8c8c;">⚠️ 中风险</div><div style="font-size:22px;font-weight:700;color:#faad14;">' + c.summary.mid + '</div></div><div style="text-align:center;flex:1;background:#f6ffed;border-radius:8px;padding:10px;"><div style="font-size:10px;color:#8c8c8c;">🟡 低风险</div><div style="font-size:22px;font-weight:700;color:#faad14;">' + c.summary.low + '</div></div></div>';
+    c.categories.forEach(function(cat, i) {
+        var exp = _expandedCategories[i] || false;
+        var badge = {high:0,mid:0,low:0}; cat.items.forEach(function(it){badge[it.level]++;});
+        h += '<div style="border:1px solid #e8e8ed;border-radius:8px;margin-bottom:8px;overflow:hidden;"><div style="display:flex;justify-content:space-between;align-items:center;padding:10px 12px;cursor:pointer;background:#fafafa;" onclick="toggleCategory(' + i + ')"><div><span style="font-size:13px;font-weight:600;">' + cat.icon + ' ' + cat.name + '</span><span style="font-size:10px;color:#8c8c8c;margin-left:8px;">' + cat.items.length + '项</span></div><div style="display:flex;gap:6px;align-items:center;">' + (badge.high > 0 ? '<span style="font-size:9px;background:#fff2f0;color:#f5222d;padding:1px 6px;border-radius:8px;">🔴 ' + badge.high + '</span>' : '') + (badge.mid > 0 ? '<span style="font-size:9px;background:#fffbe6;color:#faad14;padding:1px 6px;border-radius:8px;">⚠️ ' + badge.mid + '</span>' : '') + '<span style="font-size:12px;color:#bfbfbf;">' + (exp ? '▲' : '▼') + '</span></div></div><div id="catContent' + i + '" style="' + (exp ? '' : 'display:none;') + 'padding:0 12px 10px;">';
+        cat.items.forEach(function(it) {
+            var lc = it.level === 'high' ? '#f5222d' : (it.level === 'mid' ? '#faad14' : '#1890ff');
+            h += '<div style="display:flex;align-items:center;padding:6px 0;border-bottom:1px solid #f5f5f5;cursor:pointer;" onclick="showComplianceDetail(' + i + ',' + cat.items.indexOf(it) + ')"><div style="width:8px;height:8px;border-radius:50%;background:' + lc + ';flex-shrink:0;margin-right:8px;"></div><div style="flex:1;font-size:12px;">' + it.title + '</div><div style="font-size:10px;color:#8c8c8c;">' + (it.desc || '') + '</div></div>';
+        });
+        h += '</div></div>';
+    });
+    container.innerHTML = h;
+}
+function toggleCategory(idx) { _expandedCategories[idx] = !_expandedCategories[idx]; var el = document.getElementById('catContent' + idx); if (el) { el.style.display = _expandedCategories[idx] ? '' : 'none'; } }
+function showComplianceDetail(catIdx, itemIdx) {
+    var item = COMPLIANCE_CHECK.categories[catIdx].items[itemIdx];
+    var lc = item.level === 'high' ? '#f5222d' : (item.level === 'mid' ? '#faad14' : '#1890ff');
+    var ln = item.level === 'high' ? '高风险' : (item.level === 'mid' ? '中风险' : '低风险');
+    var h = '<div class="cal-modal" style="width:560px;"><div class="cal-modal-header"><div class="cal-modal-title" style="font-size:14px;">' + item.title + '</div><button class="cal-modal-close" onclick="closeRiskDrill()">✕</button></div><div style="margin-bottom:10px;"><span style="background:' + lc + ';color:#fff;padding:1px 8px;border-radius:10px;font-size:10px;">' + ln + '</span></div>';
+    h += '<div style="font-size:12px;font-weight:600;color:#333;margin-bottom:6px;">📋 风险描述</div><div style="font-size:12px;color:#595959;line-height:1.6;margin-bottom:12px;">此模块用于展示公司取得的发票状态不为正常状态的进项发票，主要用于识别被认定为异常凭证的进项发票。</div>';
+    if (item.detail) { h += '<div style="font-size:12px;font-weight:600;color:#333;margin-bottom:6px;">📊 异常详情</div><div style="font-size:12px;color:#595959;line-height:1.6;margin-bottom:12px;padding:8px;background:#f5f5f5;border-radius:6px;">' + item.detail + '</div>'; }
+    if (item.suggestions && item.suggestions.length) {
+        h += '<div style="font-size:12px;font-weight:600;color:#52c41a;margin-bottom:6px;">✅ 应对建议</div><ol style="font-size:12px;color:#595959;line-height:1.8;padding-left:20px;">';
+        item.suggestions.forEach(function(s) { h += '<li>' + s + '</li>'; }); h += '</ol>';
+    }
+    if (item.policy) { h += '<div style="font-size:12px;font-weight:600;color:#8c8c8c;margin-bottom:4px;">📜 政策依据</div><div style="font-size:11px;color:#8c8c8c;padding:6px 8px;background:#fafafa;border-radius:4px;">' + item.policy + '</div>'; }
+    h += '<div style="display:flex;gap:8px;margin-top:14px;"><span style="font-size:10px;color:#52c41a;cursor:pointer;padding:4px 12px;border:1px solid #52c41a;border-radius:4px;">✅ 标记已处理</span><span style="font-size:10px;color:#1890ff;cursor:pointer;padding:4px 12px;border:1px solid #1890ff;border-radius:4px;">📄 查看原始发票</span></div></div>';
+    var overlay = document.createElement('div');
+    overlay.className = 'cal-modal-overlay'; overlay.id = 'riskDrillOverlay';
+    overlay.onclick = function(e) { if (e.target === this) this.remove(); };
+    overlay.innerHTML = h;
+    document.body.appendChild(overlay);
+}
+
 function renderDashboard() {
     renderHealthBanner();
     renderTaxCalendar();
@@ -2333,6 +2570,44 @@ function showRedInvoiceDetail() {
 .cal-legend { display:flex; gap:16px; margin-top:12px; font-size:11px; color:#8c8c8c; justify-content:center; padding-top:10px; border-top:1px solid #f0f0f0; }
 .cal-legend span { display:flex; align-items:center; gap:4px; }
 .cal-legend .dot { width:7px; height:7px; border-radius:50%; display:inline-block; }
+
+    /* ===== Layout System ===== */
+    :root { --sidebar-w:200px; --chat-w:260px; --color-bg:#f5f5f7; --primary:#1890ff; --danger:#f5222d; --warning:#faad14; --success:#52c41a; --text:#333; --text-secondary:#595959; --text-hint:#8c8c8c; --text-light:#bfbfbf; --border:#e8e8ed; --border-light:#f0f0f0; --radius:8px; }
+    .app-container { display:flex; height:100vh; background:var(--color-bg); overflow:hidden; }
+    .left-panel { width:var(--sidebar-w); min-width:var(--sidebar-w); background:#fff; border-right:1px solid var(--border); display:flex; flex-direction:column; overflow-y:auto; }
+    .center-content { flex:1; overflow-y:auto; padding:20px 24px; min-width:0; }
+    .right-panel { width:var(--chat-w); min-width:var(--chat-w); background:#fff; border-left:1px solid var(--border); display:flex; flex-direction:column; }
+    .module-view { display:block; }
+    .dash-dim-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px; }
+    .dash-dim-card { background:#fff; border:1px solid var(--border); border-radius:10px; padding:14px; cursor:pointer; transition:all 0.12s; display:flex; flex-direction:column; gap:6px; }
+    .dash-dim-card:hover { border-color:var(--primary); box-shadow:0 2px 8px rgba(24,144,255,0.08); }
+    .dash-section { background:#fff; border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:14px; }
+    .dash-section-title { font-size:13px; font-weight:600; color:var(--text); margin-bottom:10px; }
+    .dash-banner { display:flex; justify-content:space-between; align-items:center; background:linear-gradient(135deg,#f0f5ff,#e6f7ff); border-radius:12px; padding:16px 20px; margin-bottom:14px; }
+    .cal-modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:1000; }
+    .cal-modal { background:#fff; border-radius:12px; box-shadow:0 4px 24px rgba(0,0,0,0.15); max-height:80vh; overflow-y:auto; padding:20px; }
+    .cal-modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+    .cal-modal-title { font-size:15px; font-weight:600; color:var(--text); }
+    .cal-modal-close { background:none; border:none; font-size:16px; cursor:pointer; color:var(--text-light); padding:0 4px; }
+    .org-info { padding:16px 16px 12px; display:flex; align-items:center; gap:10px; border-bottom:1px solid var(--border-light); }
+    .nav-menu { padding:6px 0; }
+    .nav-item { display:flex; align-items:center; gap:8px; padding:8px 16px; cursor:pointer; font-size:12px; color:var(--text-secondary); transition:all 0.12s; position:relative; }
+    .nav-item:hover { background:#f5f5f5; }
+    .nav-item.active { background:#f0f5ff; color:var(--primary); font-weight:600; }
+    .history-list { padding:4px 0; flex:1; }
+    .history-item { display:flex; align-items:center; gap:8px; padding:6px 16px; font-size:11px; color:var(--text-hint); cursor:pointer; transition:background 0.12s; }
+    .history-item:hover { background:#f5f5f5; }
+    .chat-header { padding:16px; border-bottom:1px solid var(--border-light); font-size:13px; font-weight:600; color:var(--text); }
+    .chat-messages { flex:1; overflow-y:auto; padding:12px 16px; display:flex; flex-direction:column; gap:12px; }
+    .chat-input-area { display:flex; padding:12px 16px; gap:8px; border-top:1px solid var(--border-light); }
+    .chat-input { flex:1; border:1px solid #d9d9d9; border-radius:var(--radius); padding:8px 12px; font-size:12px; outline:none; transition:border-color 0.12s; }
+    .chat-input:focus { border-color:var(--primary); }
+    .chat-send { padding:8px 16px; background:var(--primary); color:#fff; border-radius:var(--radius); font-size:12px; cursor:pointer; transition:background 0.12s; white-space:nowrap; }
+    .chat-send:hover { background:#096dd9; }
+    .sls-section { background:#fff; border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:14px; }
+    .sls-fraud-block { border:1px solid #ffccc7; border-radius:8px; padding:12px; margin-bottom:10px; background:#fff2f0; }
+    .sls-fraud-item { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid #ffccc7; font-size:12px; }
+    .sls-fraud-item:last-child { border-bottom:none; }
 </style>
 </head>
 <body>
@@ -2488,7 +2763,7 @@ function showRedInvoiceDetail() {
         <div id="salesSuggestions" class="sls-section"></div>
     </div>
     <div id="view-风险" class="module-view" style="display:none;">
-        <div style="padding:20px;text-align:center;color:#8c8c8c;">&#x26A0;&#xFE0F; 风险监控模块</div>
+        
     </div>
     </div>
     <div class="right-panel" id="rightPanel">
@@ -2545,6 +2820,7 @@ function switchModule(module, navEl) {
     if (module === '进项') renderInvoiceModule();
     if (module === '销项') renderSalesModule();
     if (module === '申报') renderDeclarationModule();
+    if (module === '风险') renderRiskModule();
 }
 </script>
 </body>
