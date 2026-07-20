@@ -1,0 +1,19 @@
+{
+  "name": "gitpush",
+  "description": "提交AI CFO项目代码变更到GitHub。用户说\"提交一下\"、\"push\"、\"提交代码\"、\"推送到GitHub\"时调用此技能。",
+  "type": "project",
+  "triggers": ["提交一下", "提交代码", "push", "推送到", "git push"],
+  "steps": [
+    "cd /home/rickyclaw/税安AI",
+    "git status -s",
+    "git diff",
+    "git add -A",
+    "git commit -m \"变更描述\"",
+    "git push"
+  ],
+  "config": {
+    "proxy": "http://127.0.0.1:7897",
+    "remote": "https://github.com/Rickywang223/AI_CFO.git",
+    "credentialFile": ".git/credentials"
+  }
+}

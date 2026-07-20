@@ -1,26 +1,33 @@
 # AI CFO · 项目指南
 
+> 本文件对所有 Agent（小智、小创）共享，进入本项目的任何 Agent 自动获得以下技能。
+
+## 项目技能
+
+### /gitpush — 提交代码到 GitHub
+
+**触发词:** "提交一下" / "push" / "提交代码" / "推送到GitHub"
+
+| 步骤 | 命令 | 说明 |
+|------|------|------|
+| 1 | `cd /home/rickyclaw/税安AI` | 项目目录 |
+| 2 | `git status -s` + `git diff` | 查看变更 |
+| 3 | `git add -A` | 暂存所有 |
+| 4 | `git commit -m "变更说明"` | 提交 |
+| 5 | `git push` | 推送 |
+
+**基建：**
+- proxy: `http.proxy=http://127.0.0.1:7897`（已写入 git config）
+- credential: 保存在 `.git/credentials`
+- 备用认证: `GIT_ASKPASS=/tmp/git_askpass.sh git push`
+
+---
+
 ## 项目概述
 企业财税AI操作系统，Flask单页应用，服务于汉堡王中国600+门店税务管理。
 - 目录: `/home/rickyclaw/税安AI`
 - 主文件: `templates/demo.html` (~4300行)
 - 开发服务器: `python3 app.py` → `http://localhost:5002`
-
----
-
-## /gitpush — 提交代码到 GitHub
-
-用户说"提交一下" / "push" / "提交代码" 时执行此流程：
-
-1. `cd /home/rickyclaw/税安AI`
-2. `git status -s` — 查看变更
-3. `git diff` — 查看具体改动
-4. `git add -A` — 暂存所有
-5. `git commit -m "描述改了什么"` — 提交
-6. `git push` — 推送到 GitHub
-   - proxy 已配置: `http.proxy=http://127.0.0.1:7897`
-   - credential 已保存在 `.git/credentials`
-   - 如果提示 credential 失效: `GIT_ASKPASS=/tmp/git_askpass.sh git push`
 
 ---
 
