@@ -2572,7 +2572,7 @@ function showRedInvoiceDetail() {
 .cal-legend .dot { width:7px; height:7px; border-radius:50%; display:inline-block; }
 
     /* ===== Layout System ===== */
-    :root { --sidebar-w:200px; --chat-w:260px; --color-bg:#f5f5f7; --primary:#1890ff; --danger:#f5222d; --warning:#faad14; --success:#52c41a; --text:#333; --text-secondary:#595959; --text-hint:#8c8c8c; --text-light:#bfbfbf; --border:#e8e8ed; --border-light:#f0f0f0; --radius:8px; }
+    :root { --sidebar-w:200px; --chat-w:340px; --color-bg:#f5f5f7; --primary:#1890ff; --danger:#f5222d; --warning:#faad14; --success:#52c41a; --text:#333; --text-secondary:#595959; --text-hint:#8c8c8c; --text-light:#bfbfbf; --border:#e8e8ed; --border-light:#f0f0f0; --radius:8px; }
     .app-container { display:flex; height:100vh; background:var(--color-bg); overflow:hidden; }
     .left-panel { width:var(--sidebar-w); min-width:var(--sidebar-w); background:#fff; border-right:1px solid var(--border); display:flex; flex-direction:column; overflow-y:auto; }
     .center-content { flex:1; overflow-y:auto; padding:20px 24px; min-width:0; }
@@ -2609,12 +2609,53 @@ function showRedInvoiceDetail() {
     .sls-fraud-item { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid #ffccc7; font-size:12px; }
     .sls-fraud-item:last-child { border-bottom:none; }
 
-    /* ===== P0: Collapsible Right Panel ===== */
-    .right-panel { transition: width 0.2s ease, min-width 0.2s ease, opacity 0.2s ease; overflow:hidden; }
+    /* ===== P0-Right Panel Toolbar & Dropdown ===== */
+    .right-panel { transition: width 0.2s ease, min-width 0.2s ease, opacity 0.2s ease; overflow:hidden; display:flex; flex-direction:column; }
     .right-panel.collapsed { width:0 !important; min-width:0 !important; border-left:none; opacity:0; padding:0; }
-    .center-content.expanded { margin-right:0; }
     .right-panel.collapsed > * { display:none; }
-    .panel-toggle { position:absolute; top:14px; right:12px; width:22px; height:22px; border-radius:50%; border:1px solid #d9d9d9; background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; color:#8c8c8c; transition:all 0.15s; z-index:5; }
+    .center-content.expanded { margin-right:0; }
+    .chat-toolbar { display:flex; align-items:center; justify-content:space-between; height:44px; padding:0 12px; background:#fafafa; border-bottom:1px solid #e8e8ed; flex-shrink:0; position:relative; }
+    .toolbar-left { display:flex; align-items:center; gap:8px; }
+    .selector-wrap { position:relative; }
+    .agent-selector, .model-selector { display:flex; align-items:center; gap:3px; padding:4px 8px; font-size:11px; color:#333; cursor:pointer; border-radius:6px; transition:background 0.1s; white-space:nowrap; }
+    .agent-selector:hover, .model-selector:hover { background:#e8e8ed; }
+    .dropdown-arrow { font-size:7px; color:#8c8c8c; }
+    .dropdown-menu { position:absolute; top:calc(100% + 4px); left:0; background:#fff; border:1px solid #e8e8ed; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.08); z-index:100; min-width:140px; padding:4px; overflow:hidden; }
+    .dropdown-item { display:flex; align-items:center; gap:6px; padding:7px 12px; font-size:12px; color:#333; cursor:pointer; border-radius:4px; transition:background 0.1s; }
+    .dropdown-item:hover { background:#f5f5f5; }
+    .dropdown-item.active { background:#f0f5ff; color:#1890ff; font-weight:500; }
+
+    /* ===== P1: Quick Questions ===== */
+    .quick-questions { display:flex; gap:6px; padding:8px 12px; flex-wrap:wrap; flex-shrink:0; }
+    .qq-btn { font-size:11px; padding:4px 12px; border:1px solid #d9d9d9; border-radius:14px; background:#fff; color:#595959; cursor:pointer; transition:all 0.1s; white-space:nowrap; }
+    .qq-btn:hover { border-color:#1890ff; color:#1890ff; background:#f0f5ff; transform:translateY(-1px); }
+
+    /* ===== P1: Message Bubbles ===== */
+    .chat-messages { flex:1; overflow-y:auto; padding:12px 16px; display:flex; flex-direction:column; gap:10px; }
+    .chat-divider { text-align:center; font-size:10px; color:#bfbfbf; margin:4px 0; position:relative; }
+    .chat-divider span { background:#f5f5f7; padding:0 10px; }
+    .chat-divider::before { content:''; position:absolute; left:0; right:0; top:50%; height:1px; background:#f0f0f0; z-index:-1; }
+    .chat-msg { display:flex; gap:8px; align-items:flex-start; max-width:100%; }
+    .chat-msg.user { flex-direction:row-reverse; }
+    .cm-avatar { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; flex-shrink:0; }
+    .cm-avatar.ai { background:linear-gradient(135deg,#1890ff,#096dd9); color:#fff; }
+    .cm-avatar.you { background:linear-gradient(135deg,#595959,#434343); color:#fff; }
+    .cm-body { max-width:85%; display:flex; flex-direction:column; gap:3px; }
+    .cm-header { font-size:10px; color:#bfbfbf; display:flex; gap:6px; }
+    .cm-header .name { color:#8c8c8c; font-weight:500; }
+    .cm-bubble { font-size:12px; line-height:1.6; padding:10px 14px; border-radius:12px; word-break:break-word; }
+    .chat-msg.ai .cm-bubble { background:#fff; border:1px solid #e8e8ed; box-shadow:0 1px 4px rgba(0,0,0,0.04); color:#333; }
+    .chat-msg.user .cm-bubble { background:linear-gradient(135deg,#1890ff,#096dd9); color:#fff; border-radius:12px 4px 12px 12px; }
+
+    /* ===== P2: Input Area ===== */
+    .chat-input-area { display:flex; padding:8px 16px 12px; gap:10px; border-top:none; flex-shrink:0; }
+    .chat-input { flex:1; border:1px solid #d9d9d9; border-radius:18px; padding:7px 14px; font-size:12px; outline:none; transition:all 0.15s; background:#f5f5f5; }
+    .chat-input:focus { border-color:#1890ff; box-shadow:0 0 0 2px rgba(24,144,255,0.1); background:#fff; }
+    .chat-send { padding:7px 18px; background:#1890ff; color:#fff; border-radius:18px; font-size:12px; font-weight:500; cursor:pointer; transition:background 0.12s; white-space:nowrap; }
+    .chat-send:hover { background:#096dd9; }
+
+    /* ===== Panel Toggle ===== */
+    .panel-toggle { width:22px; height:22px; border-radius:50%; border:1px solid #d9d9d9; background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; color:#8c8c8c; transition:all 0.15s; flex-shrink:0; }
     .panel-toggle:hover { border-color:#1890ff; color:#1890ff; background:#f0f5ff; }
 
     /* ===== P1: Warning Banner ===== */
@@ -2791,15 +2832,43 @@ function showRedInvoiceDetail() {
     </div>
     </div>
     <div class="right-panel collapsed" id="rightPanel">
-        <div class="chat-header" id="chatHeaderText" style="position:relative;">AI 财务助手<div class="panel-toggle" id="panelToggle" onclick="toggleRightPanel()">&#9654;</div></div>
-        <div class="chat-messages" id="chatMessages">
-            <div class="chat-msg ai">
-                <div class="cm-avatar">AI</div>
-                <div class="cm-content">
-                    <div class="cm-text">你好！我是你的AI财务助手，可以帮你分析各类财税数据。有什么可以帮你的？</div>
+    <div class="chat-toolbar">
+        <div class="toolbar-left">
+            <div class="selector-wrap">
+                <div class="agent-selector" id="agentSelector" onclick="toggleDropdown('agentDropdown')">
+                    🤖 税务助手 <span class="dropdown-arrow">▼</span>
+                </div>
+                <div class="dropdown-menu" id="agentDropdown" style="display:none;">
+                    <div class="dropdown-item active" onclick="selectAgent(this, '&#x1F916;', '税务助手')">🤖 税务助手</div>
+                    <div class="dropdown-item" onclick="selectAgent(this, '&#x1F50D;', '合规审计')">🔍 合规审计</div>
+                    <div class="dropdown-item" onclick="selectAgent(this, '&#x1F4CB;', '申报专员')">📋 申报专员</div>
+                    <div class="dropdown-item" onclick="selectAgent(this, '&#x1F4CA;', '数据分析')">📊 数据分析</div>
+                </div>
+            </div>
+            <div class="selector-wrap">
+                <div class="model-selector" id="modelSelector" onclick="toggleDropdown('modelDropdown')">
+                    🧠 Claude 4 <span class="dropdown-arrow">▼</span>
+                </div>
+                <div class="dropdown-menu" id="modelDropdown" style="display:none;">
+                    <div class="dropdown-item active" onclick="selectModel(this, '&#x1F9E0;', 'Claude 4')">🧠 Claude 4</div>
+                    <div class="dropdown-item" onclick="selectModel(this, '&#x1F916;', 'GPT-4o')">🤖 GPT-4o</div>
+                    <div class="dropdown-item" onclick="selectModel(this, '&#x1F9BE;', 'Gemini 2.5')">🦾 Gemini 2.5</div>
                 </div>
             </div>
         </div>
+        <div class="panel-toggle" id="panelToggle" onclick="toggleRightPanel()">&#9654;</div>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+            <div class="chat-divider"><span>2026年7月20日</span></div>
+            <div class="chat-msg ai">
+                <div class="cm-avatar ai">AI</div>
+                <div class="cm-body">
+                    <div class="cm-header"><span class="name">AI 助手</span><span>刚刚</span></div>
+                    <div class="cm-bubble">你好！我是 AI CFO 智能税务助手 👋<br><br>当前驾驶舱数据显示：<br>📄 发票总数 3,304,207 张<br>✅ 认证率 41.4%（偏低）<br>🟢 合规率 59.9%<br><br>你可以问：<br>"哪些发票有风险？"<br>"这个月要交多少税？"<br>"帮我写一份税务简报"</div>
+                </div>
+            </div>
+        </div>
+        <div class="quick-questions" id="quickQuestions"></div>
         <div class="chat-input-area">
             <input class="chat-input" id="chatInput" placeholder="输入你的问题..." onkeydown="if(event.key==='Enter')sendChat(this.value)">
             <div class="chat-send" onclick="sendChat(document.getElementById('chatInput').value)">发送</div>
@@ -2848,8 +2917,7 @@ function loadHistory(name) {
             '供应商合规分析': '供应商合规分析结果：共评估20家主要供应商，其中2家风险偏高（雪峰、合炘），建议加强监督。',
         };
         var reply = replies[name] || '已加载"' + name + '"的话题，请输入你的问题。';
-        msgs.innerHTML = '<div class="chat-msg ai"><div class="cm-avatar">AI</div><div class="cm-content"><div class="cm-text">' + reply + '</div></div></div>' +
-            '<div class="chat-msg user"><div class="cm-avatar you">您</div><div class="cm-content" style="background:#1890ff;color:#fff;border-radius:12px 4px 12px 12px;"><div class="cm-text">' + name + '</div></div></div>';
+        msgs.innerHTML = '<div class="chat-divider"><span>2026年7月20日</span></div><div class="chat-msg user"><div class="cm-avatar you">您</div><div class="cm-body"><div class="cm-header" style="text-align:right;"><span>刚刚</span><span class="name">您</span></div><div class="cm-bubble">' + name + '</div></div></div><div class="chat-msg ai"><div class="cm-avatar ai">AI</div><div class="cm-body"><div class="cm-header"><span class="name">AI 助手</span><span>刚刚</span></div><div class="cm-bubble">' + reply + '</div></div></div>';
     }
     var input = document.getElementById('chatInput');
     if (input) { input.value = ''; input.placeholder = '回复"' + name + '"的话题...'; }
@@ -2858,6 +2926,8 @@ renderDashboard();
 
 function switchModule(module, navEl) {
     document.querySelectorAll('.module-view').forEach(function(v) { v.style.display = 'none'; });
+    _currentModule = module;
+    updateQuickQuestions();
     setTimeout(function() { updateWelcomeMessage(module); }, 100);
     if (module === '驾驶舱' || module === 'dashboard') {
         var rp = document.getElementById('rightPanel');
@@ -2881,9 +2951,108 @@ function toggleRightPanel() {
     var btn = document.querySelector('#panelToggle');
     if (!panel) return;
     panel.classList.toggle('collapsed');
-    if (btn) btn.innerHTML = panel.classList.contains('collapsed') ? '▶' : '◀';
+    if (btn) btn.innerHTML = panel.classList.contains('collapsed') ? '&#9654;' : '&#9664;';
     var center = document.querySelector('.center-content');
     if (center) center.classList.toggle('expanded');
+    if (!panel.classList.contains('collapsed')) {
+        updateQuickQuestions();
+    }
+}
+
+// ===== P0: Dropdown =====
+function toggleDropdown(id) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    var isHidden = el.style.display === 'none';
+    document.querySelectorAll('.dropdown-menu').forEach(function(d) { d.style.display = 'none'; });
+    el.style.display = isHidden ? 'block' : 'none';
+}
+document.addEventListener('click', function(e) {
+    if (!e.target.closest('.agent-selector') && !e.target.closest('.model-selector')) {
+        document.querySelectorAll('.dropdown-menu').forEach(function(d) { d.style.display = 'none'; });
+    }
+});
+
+// ===== P0: Agent Select =====
+function selectAgent(el, icon, name) {
+    document.querySelectorAll('#agentDropdown .dropdown-item').forEach(function(it) { it.classList.remove('active'); });
+    el.classList.add('active');
+    document.getElementById('agentSelector').innerHTML = icon + ' ' + name + ' <span class="dropdown-arrow">&#x25BC;</span>';
+    document.getElementById('agentDropdown').style.display = 'none';
+}
+
+// ===== P0: Model Select =====
+function selectModel(el, icon, name) {
+    document.querySelectorAll('#modelDropdown .dropdown-item').forEach(function(it) { it.classList.remove('active'); });
+    el.classList.add('active');
+    document.getElementById('modelSelector').innerHTML = icon + ' ' + name + ' <span class="dropdown-arrow">&#x25BC;</span>';
+    document.getElementById('modelDropdown').style.display = 'none';
+}
+
+// ===== P1: Quick Questions =====
+var _quickQuestions = {
+    'dashboard': ['&#x1F4CA; 本月有什么异常？', '&#x1F4B0; 预估要交多少税？', '&#x1F4DD; 写一份简报'],
+    '进项': ['&#x1F50D; 未认证发票有多少？', '&#x1F3ED; 供应商风险分析', '&#x26A0;&#xFE0F; 异常发票清单'],
+    '风险': ['&#x1F534; 高风险公司有哪些？', '&#x1F4C8; 风险趋势如何？', '&#x1F4A1; 处置建议'],
+    '申报': ['&#x1F4CB; 申报进度如何？', '&#x26A0;&#xFE0F; 申报差异分析', '&#x1F4CA; 同比环比分析'],
+    '销项': ['&#x1F4CA; 销售趋势如何？', '&#x1F3C6; 商品TOP10', '&#x1F4C9; 税负率分析'],
+};
+var _currentModule = 'dashboard';
+function updateQuickQuestions() {
+    var qs = document.getElementById('quickQuestions');
+    if (!qs) return;
+    var list = _quickQuestions[_currentModule] || _quickQuestions['dashboard'];
+    qs.innerHTML = '';
+    list.forEach(function(q) {
+        var btn = document.createElement('span');
+        btn.className = 'qq-btn';
+        btn.innerHTML = q;
+        btn.onclick = function() { sendQuickQuestion(q); };
+        qs.appendChild(btn);
+    });
+}
+function sendQuickQuestion(text) {
+    var input = document.getElementById('chatInput');
+    if (input) { input.value = text; }
+    sendChat(text);
+}
+
+// ===== P1: Enhanced sendChat =====
+function sendChat(text) {
+    if (!text || !text.trim()) return;
+    var input = document.getElementById('chatInput');
+    if (input) input.value = '';
+    var msgs = document.getElementById('chatMessages');
+    if (!msgs) return;
+    var now = new Date();
+    var time = now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+    msgs.innerHTML += '<div class="chat-msg user"><div class="cm-avatar you">&#x60A8;</div><div class="cm-body"><div class="cm-header" style="text-align:right;"><span>' + time + '</span><span class="name">&#x60A8;</span></div><div class="cm-bubble">' + escapeHtml(text) + '</div></div></div>';
+    var agentName = document.querySelector('#agentSelector') ? document.querySelector('#agentSelector').textContent.trim() : 'AI';
+    msgs.innerHTML += '<div class="chat-msg ai"><div class="cm-avatar ai">AI</div><div class="cm-body"><div class="cm-header"><span class="name">' + agentName + '</span><span>正在输入...</span></div><div class="cm-bubble">&#x1F4AC; AI正在分析你的问题，请稍候...</div></div></div>';
+    msgs.scrollTop = msgs.scrollHeight;
+    setTimeout(function() {
+        var reply = getAIReply(text);
+        msgs.innerHTML = msgs.innerHTML.replace('正在输入...', '刚刚');
+        msgs.innerHTML = msgs.innerHTML.replace('&#x1F4AC; AI正在分析你的问题，请稍候...', reply);
+        msgs.scrollTop = msgs.scrollHeight;
+    }, 800);
+}
+function escapeHtml(t) { return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+// ===== P1: AI Reply Generator =====
+function getAIReply(text) {
+    var r = {
+        '异常': '已扫描 600 家公司，发现 <b>45 家异常</b>。<br>其中高风险 3 家，预估损失约 640 万。<br>建议立即查看风险监控模块。',
+        '税': '基于当前数据，本月预估 <b>增值税约 128 万元</b>，企业所得税约 360 万元。<br>较上期增值税下降 8.3%。',
+        '风险': '当前高风险公司 TOP 3：<br>1. 华东·上海XX路店（32分）<br>2. 华东·南京XX路店（41分）<br>3. 投资公司（45分）<br>建议优先处置 P0 级别风险项。',
+        '发票': '当前未认证发票 <b>1,937,407 张</b>，认证率 41.4%。<br>其中超 90 天未认证约 70 万张，预估损失 280 万。',
+        '简报': '## 税务简报<br><br>📊 本月概况：<br>- 发票总数：3,304,207 张<br>- 认证率：41.4%<br>- 合规率：59.9%<br>- 预估增值税：128 万<br><br>⚠️ 重点关注：<br>- 华东区域 45 家异常公司<br>- 大额发票未认证 47 张',
+        '供应商': '供应商合规分析结果：<br>共评估 20 家主要供应商。<br>⚠️ 风险偏高：雪峰（12.3%）、合炘<br>建议加强这两家供应商的发票审核。',
+    };
+    for (var key in r) {
+        if (text.indexOf(key) >= 0) return r[key];
+    }
+    return '收到你的问题。基于当前数据：\n- 发票总数 3,304,207 张\n- 本月预估增值税 128 万元\n- 异常公司 45 家\n\n如需详细分析，请告诉我具体关注什么。';
 }
 
 // ===== P1: Warning Banner =====
@@ -2945,8 +3114,8 @@ function updateWelcomeMessage(moduleName) {
         '\u98ce\u9669\u76d1\u63a7': '\u4f60\u597d\uff01\u5f53\u524d\u98ce\u9669\u76d1\u63a7\u6a21\u5757\uff0c\u53ef\u4ee5\u5e2e\u4f60\u626b\u63cf\u5f02\u5e38\u516c\u53f8\u3001\u67e5\u770b\u98ce\u9669TOP5\u3001\u5206\u6790\u635f\u5931\u660e\u7ec6\u3002',
     };
     var msg = welcomes[moduleName] || welcomes['\u9a7e\u9a76\u8231'] || '\u4f60\u597d\uff01\u6211\u662f AI CFO \u667a\u80fd\u7a0e\u52a1\u52a9\u624b\uff0c\u6709\u4ec0\u4e48\u53ef\u4ee5\u5e2e\u4f60\uff1f';
-    var cmText = first.querySelector('.cm-text');
-    if (cmText) cmText.textContent = msg;
+    var cmText = first.querySelector('.cm-bubble');
+    if (cmText) cmText.innerHTML = msg;
 }
 </script>
 </body>
