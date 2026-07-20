@@ -1096,9 +1096,12 @@ function renderHealthBanner() {
     var level = 'B';
     var pendingTotal = 12;
     var pendingEmerg = 2;
-    var color = '#faad14';
-    document.getElementById('dashHealthScore').innerHTML = level + '\u7ea7 ' + score + '\u5206';
-    document.getElementById('dashHealthScore').style.color = color;
+    var colors = { 'A': ['#f6ffed','#b7eb8f','#52c41a'], 'B': ['#e6f7ff','#91d5ff','#1890ff'], 'C': ['#fffbe6','#ffe58f','#faad14'], 'D': ['#fff1f0','#ffccc7','#f5222d'] };
+    var c = colors[level] || colors['B'];
+    document.getElementById('dashBanner').style.background = 'linear-gradient(135deg,' + c[0] + ',' + c[1] + '20)';
+    document.getElementById('dashBanner').style.borderColor = c[1];
+    document.getElementById('dashHealthScore').innerHTML = level + '级 ' + score + '分';
+    document.getElementById('dashHealthScore').style.color = c[2];
     document.getElementById('dashPendingCount').innerHTML = pendingTotal + ' \u9879 <span style="font-size:12px;color:#f5222d;">\u25cf ' + pendingEmerg + '</span>';
     document.getElementById('dashDeadline').innerHTML = o.deadlineDays + ' \u5929';
     document.getElementById('dashDeadline').style.color = o.deadlineDays < 7 ? '#f5222d' : (o.deadlineDays < 15 ? '#faad14' : '#52c41a');
@@ -2614,12 +2617,26 @@ function showRedInvoiceDetail() {
     .module-view { display:block; }
     .center-content { flex:1; overflow-y:auto; padding:20px 24px; min-width:0; }
     .right-panel { width:var(--chat-w); min-width:var(--chat-w); background:#fff; border-left:1px solid var(--border); display:flex; flex-direction:column; }
+
+    /* ===== Dashboard Health Banner ===== */
+    .dash-banner { background:linear-gradient(135deg,#e6f7ff,#f0f5ff); border:1px solid #91d5ff; border-radius:12px; padding:16px 20px; display:flex; justify-content:space-between; align-items:center; gap:16px; margin-bottom:14px; transition:all 0.2s; }
+    .dash-banner-left { display:flex; flex-direction:column; gap:6px; }
+    .dash-banner-title { font-size:15px; font-weight:600; color:#1a1a2e; }
+    .dash-banner-stats { display:flex; gap:20px; align-items:center; flex-wrap:wrap; }
+    .dash-stat-item { display:flex; flex-direction:column; gap:1px; }
+    .dash-stat-label { font-size:10px; color:#8c8c8c; }
+    .dash-stat-value { font-size:18px; font-weight:700; color:#333; }
+    .dash-banner-trend { font-size:11px; color:#8c8c8c; }
+    .dash-banner-right { display:flex; flex-wrap:wrap; gap:6px; }
+    .dash-module-link { font-size:11px; padding:5px 12px; border:1px solid #d9d9d9; border-radius:6px; cursor:pointer; transition:all 0.1s; background:#fff; color:var(--text-secondary); white-space:nowrap; }
+    .dash-module-link:hover { border-color:var(--primary); color:var(--primary); background:#f0f5ff; }
+
+    /* ===== Dimension Cards ===== */
     .dash-dim-row { display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:14px; }
-    .dash-dim-card { background:#fff; border:1px solid var(--border); border-radius:10px; padding:14px; cursor:pointer; transition:all 0.12s; display:flex; flex-direction:column; gap:6px; }
-    .dash-dim-card:hover { border-color:var(--primary); box-shadow:0 2px 8px rgba(24,144,255,0.08); }
+    .dash-dim-card { background:#fff; border:1px solid var(--border); border-radius:12px; padding:16px; cursor:pointer; transition:all 0.2s; display:flex; flex-direction:column; gap:6px; }
+    .dash-dim-card:hover { transform:translateY(-2px); box-shadow:0 4px 16px rgba(0,0,0,0.06); }
     .dash-section { background:#fff; border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:14px; }
     .dash-section-title { font-size:13px; font-weight:600; color:var(--text); margin-bottom:10px; }
-    .dash-banner { display:flex; justify-content:space-between; align-items:center; background:linear-gradient(135deg,#f0f5ff,#e6f7ff); border-radius:12px; padding:16px 20px; margin-bottom:14px; }
     .cal-modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:1000; }
     .cal-modal { background:#fff; border-radius:12px; box-shadow:0 4px 24px rgba(0,0,0,0.15); max-height:80vh; overflow-y:auto; padding:20px; }
     .cal-modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
@@ -2753,7 +2770,7 @@ function showRedInvoiceDetail() {
     </div>
     <div class="center-content expanded" id="centerContent">
     <div id="view-dashboard" class="module-view">
-        <div class="dash-banner">
+        <div class="dash-banner" id="dashBanner">
             <div class="dash-banner-left">
                 <div class="dash-banner-title">&#x1F3C6; 集团健康总览</div>
                 <div class="dash-banner-stats">
