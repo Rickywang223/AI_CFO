@@ -2608,6 +2608,30 @@ function showRedInvoiceDetail() {
     .sls-fraud-block { border:1px solid #ffccc7; border-radius:8px; padding:12px; margin-bottom:10px; background:#fff2f0; }
     .sls-fraud-item { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid #ffccc7; font-size:12px; }
     .sls-fraud-item:last-child { border-bottom:none; }
+
+    /* ===== P0: Collapsible Right Panel ===== */
+    .right-panel { transition: width 0.2s ease, min-width 0.2s ease, opacity 0.2s ease; overflow:hidden; }
+    .right-panel.collapsed { width:0 !important; min-width:0 !important; border-left:none; opacity:0; padding:0; }
+    .center-content.expanded { margin-right:0; }
+    .right-panel.collapsed > * { display:none; }
+    .panel-toggle { position:absolute; top:14px; right:12px; width:22px; height:22px; border-radius:50%; border:1px solid #d9d9d9; background:#fff; cursor:pointer; display:flex; align-items:center; justify-content:center; font-size:10px; color:#8c8c8c; transition:all 0.15s; z-index:5; }
+    .panel-toggle:hover { border-color:#1890ff; color:#1890ff; background:#f0f5ff; }
+
+    /* ===== P1: Warning Banner ===== */
+    .alert-banner { display:flex; align-items:center; gap:6px; padding:8px 12px; margin:6px 12px; background:linear-gradient(90deg,#fff2f0,#fff5f5); border:1px solid #ffccc7; border-radius:6px; cursor:pointer; transition:all 0.15s; }
+    .alert-banner:hover { background:#fff2f0; border-color:#ff4d4f; }
+    .alert-banner-icon { width:20px; height:20px; border-radius:50%; background:#f5222d; color:#fff; display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; flex-shrink:0; }
+    .alert-banner-text { flex:1; font-size:11px; color:#cf1322; font-weight:500; }
+    .alert-banner-arrow { font-size:10px; color:#ff4d4f; }
+
+    /* ===== P2: Visual Refinements ===== */
+    .chat-input { border-radius:18px; padding:8px 14px; transition:all 0.15s; }
+    .chat-input:focus { border-color:#1890ff; box-shadow:0 0 0 2px rgba(24,144,255,0.1); }
+    .chat-send { border-radius:18px; font-weight:500; font-size:12px; }
+    .nav-item { border-radius:4px; margin:1px 8px; padding:7px 12px; }
+    .nav-item.active { background:linear-gradient(90deg,#f0f5ff,#e6f7ff); }
+    .dash-dim-card { border-radius:12px; }
+    .dash-section { border-radius:12px; }
 </style>
 </head>
 <body>
@@ -2620,7 +2644,7 @@ function showRedInvoiceDetail() {
                 <div class="org-version">AI CFO · v1.0</div>
             </div>
         </div>
-        <div class="nav-menu">
+        <div class="alert-banner" id="alertBanner" onclick="triggerRiskChat()"><div class="alert-banner-icon">!</div><div class="alert-banner-text">今日有 <b>45</b> 项异常待处理</div><div class="alert-banner-arrow">\u203a</div></div><div class="nav-menu">
             <div class="nav-item alert-nav" onclick="switchModule('风险',this)" data-module="风险">
                 <span class="nav-icon">&#x26A0;&#xFE0F;</span><span class="nav-label">异常预警</span><span class="nav-badge" style="background:#f5222d;">45</span>
             </div>
@@ -2767,7 +2791,7 @@ function showRedInvoiceDetail() {
     </div>
     </div>
     <div class="right-panel" id="rightPanel">
-        <div class="chat-header" id="chatHeaderText">AI 财务助手</div>
+        <div class="chat-header" id="chatHeaderText" style="position:relative;">AI 财务助手<div class="panel-toggle" id="panelToggle" onclick="toggleRightPanel()">\u25c0</div></div>
         <div class="chat-messages" id="chatMessages">
             <div class="chat-msg ai">
                 <div class="cm-avatar">AI</div>
@@ -2821,6 +2845,80 @@ function switchModule(module, navEl) {
     if (module === '销项') renderSalesModule();
     if (module === '申报') renderDeclarationModule();
     if (module === '风险') renderRiskModule();
+}
+
+// ===== P0: Toggle Right Panel =====
+function toggleRightPanel() {
+    var panel = document.getElementById('rightPanel');
+    var btn = document.getElementById('panelToggle');
+    if (!panel) return;
+    panel.classList.toggle('collapsed');
+    btn.innerHTML = panel.classList.contains('collapsed') ? '\u25b6' : '\u25c0';
+    var center = document.querySelector('.center-content');
+    if (center) center.classList.toggle('expanded');
+}
+
+// ===== P1: Warning Banner =====
+function triggerRiskChat() {
+    var panel = document.getElementById('rightPanel');
+    if (panel.classList.contains('collapsed')) {
+        toggleRightPanel();
+    }
+    var input = document.getElementById('chatInput');
+    if (input) {
+        input.value = '\u4eca\u5929\u54ea\u4e9b\u516c\u53f8\u6709\u98ce\u9669\uff1f\u5e2e\u6211\u770b\u770b';
+    }
+    setTimeout(function() {
+        var sendBtn = document.querySelector('.chat-send');
+        if (sendBtn) sendBtn.click();
+    }, 300);
+}
+
+// ===== P1: History Chat =====
+function showHistoryChat(el) {
+    var panel = document.getElementById('rightPanel');
+    if (panel.classList.contains('collapsed')) {
+        toggleRightPanel();
+    }
+    var items = document.querySelectorAll('.history-item');
+    items.forEach(function(it) { it.style.background = ''; });
+    el.style.background = '#f0f5ff';
+    var text = el.textContent.trim();
+    var input = document.getElementById('chatInput');
+    var header = document.getElementById('chatHeaderText');
+    if (header) header.textContent = text;
+    var msgs = document.getElementById('chatMessages');
+    if (msgs) {
+        var replies = {
+            '\u8fdb\u9879\u7ba1\u7406\u5206\u6790': '\u597d\u7684\uff0c\u8fdb\u9879\u7ba1\u7406\u5206\u6790\u62a5\u544a\u5df2\u751f\u6210\u3002\u5f53\u524d\u8ba4\u8bc1\u738741.4%\uff0c\u672a\u8ba4\u8bc1\u53d1\u79681,937,407\u5f20\uff0c\u4e3b\u8981\u96c6\u4e2d\u5728\u8fd1\u4e09\u4e2a\u6708\u3002\u5efa\u8bae\u4f18\u5148\u5904\u7406\u8d85\u671f\u672a\u8ba4\u8bc1\u53d1\u7968\u3002',
+            '\u98ce\u9669\u626b\u63cf\u62a5\u544a': '\u98ce\u9669\u626b\u63cf\u5df2\u5b8c\u6210\uff0c\u53d1\u73b045\u5bb6\u5f02\u5e38\u516c\u53f8\uff0c\u5176\u4e2d\u9ad8\u98ce\u96693\u5bb6\uff0c\u9884\u4f30\u635f\u5931\u7ea6640\u4e07\u3002\u5efa\u8bae\u7acb\u5373\u5904\u7f6e\u9ad8\u98ce\u9669\u9879\u76ee\u3002',
+            '\u7533\u62a5\u9884\u6d4b\u590d\u6838': '\u7533\u62a5\u9884\u6d4b\u590d\u6838\u7ed3\u679c\uff1a\u672c\u671f\u5e94\u7eb3\u589e\u503c\u7a0e\u7ea6128\u4e07\u5143\uff0c\u4f01\u4e1a\u6240\u5f97\u7a0e\u7ea6360\u4e07\u5143\u3002\u4e0e\u4e0a\u671f\u76f8\u6bd4\uff0c\u589e\u503c\u7a0e\u4e0b\u964d8.3%\uff0c\u4e3b\u8981\u539f\u56e0\u4e3a\u8fdb\u9879\u7a0e\u589e\u52a0\u3002',
+            '\u9500\u9879\u6570\u636e\u6838\u5bf9': '\u9500\u9879\u6570\u636e\u6838\u5bf9\u5df2\u5b8c\u6210\uff0c\u5f53\u671f\u9500\u552e\u603b\u989d\u7ea62.1\u4ebf\u5143\uff0c\u9500\u9879\u7a0e\u7ea62730\u4e07\u5143\u3002\u6838\u5bf9\u5dee\u5f02\u7387\u4e3a0.3%\uff0c\u5728\u5408\u7406\u8303\u56f4\u5185\u3002',
+            '\u4f9b\u5e94\u5546\u5408\u89c4\u5206\u6790': '\u4f9b\u5e94\u5546\u5408\u89c4\u5206\u6790\u7ed3\u679c\uff1a\u5171\u8bc4\u4f3020\u5bb6\u4e3b\u8981\u4f9b\u5e94\u5546\uff0c\u5176\u4e2d2\u5bb6\u98ce\u9669\u504f\u9ad8\uff08\u96ea\u5cf0\u3001\u5408\u7098\uff09\uff0c\u5efa\u8bae\u52a0\u5f3a\u76d1\u7763\u3002',
+        };
+        var reply = replies[text] || '\u5df2\u52a0\u8f7d\u201c' + text + '\u201d\u7684\u8bdd\u9898\uff0c\u8bf7\u8f93\u5165\u4f60\u7684\u95ee\u9898\u3002';
+        msgs.innerHTML = '<div class="chat-msg ai"><div class="cm-avatar">AI</div><div class="cm-content"><div class="cm-text">' + reply + '</div></div></div>' +
+            '<div class="chat-msg user"><div class="cm-avatar you">\u60a8</div><div class="cm-content" style="background:#1890ff;color:#fff;border-radius:12px 4px 12px 12px;"><div class="cm-text">' + text + '</div></div></div>';
+    }
+    if (input) { input.value = ''; input.placeholder = '\u56de\u590d\u201c' + text + '\u201d\u7684\u8bdd\u9898...'; }
+}
+
+// ===== P2: Dynamic Welcome =====
+function updateWelcomeMessage(moduleName) {
+    var msgs = document.getElementById('chatMessages');
+    if (!msgs) return;
+    var first = msgs.querySelector('.chat-msg');
+    if (!first) return;
+    var welcomes = {
+        '\u9a7e\u9a76\u8231': '\u4f60\u597d\uff01\u6211\u662f AI CFO \u667a\u80fd\u7a0e\u52a1\u52a9\u624b \ud83d\udc4b\n\n\u5f53\u524d\u9a7e\u9a76\u8231\u6570\u636e\u663e\u793a\uff1a\n\ud83d\udcc4 \u53d1\u7968\u603b\u6570 3,304,207\u5f20\n\u2705 \u8ba4\u8bc1\u7387 41.4%\uff08\u504f\u4f4e\uff09\n\ud83d\udfe2 \u5408\u89c4\u7387 59.9%\n\n\u4f60\u53ef\u4ee5\u95ee\uff1a\n\"\u54ea\u4e9b\u53d1\u7968\u6709\u98ce\u9669\uff1f\"\n\"\u8fd9\u4e2a\u6708\u8981\u4ea4\u591a\u5c11\u7a0e\uff1f\"\n\"\u5e2e\u6211\u5199\u4e00\u4efd\u7a0e\u52a1\u7b80\u62a5\"',
+        '\u8fdb\u9879\u7ba1\u7406': '\u4f60\u597d\uff01\u5f53\u524d\u8fdb\u9879\u7ba1\u7406\u6a21\u5757\uff0c\u53ef\u4ee5\u5e2e\u4f60\u5206\u6790\u53d1\u7968\u8ba4\u8bc1\u72b6\u51b5\u3001\u4f9b\u5e94\u5546\u5206\u6790\u3001\u7a0e\u7387\u5206\u5e03\u7b49\u3002',
+        '\u7533\u62a5\u7ba1\u7406': '\u4f60\u597d\uff01\u5f53\u524d\u7533\u62a5\u7ba1\u7406\u6a21\u5757\uff0c\u53ef\u4ee5\u5e2e\u4f60\u67e5\u770b\u5f81\u671f\u8fdb\u5ea6\u3001\u7533\u62a5\u5dee\u5f02\u5206\u6790\u3001\u4f01\u7a0e\u6c47\u7b97\u6e05\u7eb3\u7b49\u3002',
+        '\u9500\u9879\u7ba1\u7406': '\u4f60\u597d\uff01\u5f53\u524d\u9500\u9879\u7ba1\u7406\u6a21\u5757\uff0c\u53ef\u4ee5\u5e2e\u4f60\u5206\u6790\u9500\u552e\u8d8b\u52bf\u3001\u5546\u54c1Top10\u3001\u9500\u9879\u7a0e\u8d1f\u5206\u6790\u7b49\u3002',
+        '\u98ce\u9669\u76d1\u63a7': '\u4f60\u597d\uff01\u5f53\u524d\u98ce\u9669\u76d1\u63a7\u6a21\u5757\uff0c\u53ef\u4ee5\u5e2e\u4f60\u626b\u63cf\u5f02\u5e38\u516c\u53f8\u3001\u67e5\u770b\u98ce\u9669TOP5\u3001\u5206\u6790\u635f\u5931\u660e\u7ec6\u3002',
+    };
+    var msg = welcomes[moduleName] || '\u4f60\u597d\uff01\u6211\u662f AI CFO \u667a\u80fd\u7a0e\u52a1\u52a9\u624b\uff0c\u6709\u4ec0\u4e48\u53ef\u4ee5\u5e2e\u4f60\uff1f';
+    var cmText = first.querySelector('.cm-text');
+    if (cmText) cmText.textContent = msg;
 }
 </script>
 </body>
