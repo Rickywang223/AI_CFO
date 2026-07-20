@@ -2637,9 +2637,8 @@ function showRedInvoiceDetail() {
     .chat-divider::before { content:''; position:absolute; left:0; right:0; top:50%; height:1px; background:#f0f0f0; z-index:-1; }
     .chat-msg { display:flex; gap:8px; align-items:flex-start; max-width:100%; }
     .chat-msg.ai { padding-left:16px; }
-    .chat-msg.user { flex-direction:row; position:relative; }
-    .chat-msg.user .cm-body { align-items:flex-end; margin-left:auto; }
-    .chat-msg.user .cm-avatar { position:absolute; right:4px; top:0; }
+    .chat-msg.user { flex-direction:row-reverse; margin-left:auto; }
+    .chat-msg.user .cm-body { align-items:flex-end; }
     .cm-avatar { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:600; flex-shrink:0; }
     .cm-avatar.ai { background:linear-gradient(135deg,#1890ff,#096dd9); color:#fff; }
     .cm-avatar.you { background:linear-gradient(135deg,#595959,#434343); color:#fff; }
