@@ -2730,6 +2730,40 @@ function showRedInvoiceDetail() {
     .plugin-modal input[type=text], .plugin-modal textarea, .plugin-modal select { width:100%; padding:6px 10px; border:1px solid #d9d9d9; border-radius:6px; font-size:12px; outline:none; box-sizing:border-box; margin-bottom:10px; }
     .plugin-modal input:focus, .plugin-modal textarea:focus { border-color:var(--primary); }
     .plugin-modal textarea { min-height:50px; resize:vertical; }
+
+    /* ===== Agent Management ===== */
+    .agent-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+    .agent-card { display:flex; flex-direction:column; gap:8px; padding:16px; border:1px solid var(--border); border-radius:8px; background:#fff; cursor:pointer; transition:all 0.12s; }
+    .agent-card:hover { border-color:var(--primary); box-shadow:0 2px 8px rgba(24,144,255,0.06); }
+    .ac-header { display:flex; align-items:center; justify-content:space-between; }
+    .ac-header-left { display:flex; align-items:center; gap:8px; }
+    .ac-avatar { font-size:28px; width:40px; height:40px; border-radius:8px; display:flex; align-items:center; justify-content:center; }
+    .ac-name { font-size:13px; font-weight:600; color:#1a1a2e; }
+    .ac-status { font-size:10px; padding:2px 8px; border-radius:4px; }
+    .ac-style { font-size:10px; color:#8c8c8c; margin-top:2px; }
+    .ac-body { font-size:11px; color:#595959; line-height:1.5; }
+    .ac-footer { display:flex; gap:12px; font-size:10px; color:#bfbfbf; flex-wrap:wrap; }
+    .ac-footer span { white-space:nowrap; }
+    .ac-actions { display:flex; gap:4px; margin-top:4px; }
+    .ac-action-btn { font-size:10px; padding:3px 10px; border:1px solid #d9d9d9; border-radius:4px; cursor:pointer; color:#8c8c8c; background:#fff; transition:all 0.1s; }
+    .ac-action-btn:hover { border-color:var(--primary); color:var(--primary); }
+    .agent-btn { font-size:11px; padding:6px 14px; border:1px solid #d9d9d9; border-radius:6px; cursor:pointer; transition:all 0.1s; background:#fff; color:#333; white-space:nowrap; }
+    .agent-btn:hover { border-color:var(--primary); color:var(--primary); }
+    .agent-btn.primary { background:var(--primary); color:#fff; border-color:var(--primary); }
+    .agent-btn.primary:hover { background:#096dd9; }
+    .agent-empty { font-size:12px; color:#bfbfbf; padding:60px; text-align:center; }
+    .agent-modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:1000; }
+    .agent-modal { background:#fff; border-radius:12px; box-shadow:0 4px 24px rgba(0,0,0,0.15); max-height:85vh; overflow-y:auto; padding:20px; min-width:480px; }
+    .agent-modal h3 { font-size:14px; font-weight:600; margin:0 0 14px; color:#1a1a2e; }
+    .agent-modal label { font-size:11px; color:#595959; display:block; margin-bottom:4px; }
+    .agent-modal input[type=text], .agent-modal textarea, .agent-modal select { width:100%; padding:6px 10px; border:1px solid #d9d9d9; border-radius:6px; font-size:12px; outline:none; box-sizing:border-box; margin-bottom:10px; font-family:inherit; }
+    .agent-modal input:focus, .agent-modal textarea:focus { border-color:var(--primary); }
+    .agent-modal textarea { min-height:60px; resize:vertical; }
+    .agent-modal .ag-section { margin-bottom:12px; }
+    .agent-modal .ag-section-title { font-size:11px; font-weight:600; color:#333; margin-bottom:6px; }
+    .agent-modal .ag-tags { display:flex; gap:6px; flex-wrap:wrap; }
+    .agent-modal .ag-tag { font-size:10px; padding:4px 10px; border:1px solid #d9d9d9; border-radius:4px; cursor:pointer; transition:all 0.1s; background:#fff; color:#595959; user-select:none; }
+    .agent-modal .ag-tag.selected { background:var(--primary); color:#fff; border-color:var(--primary); }
     .cal-modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:1000; }
     .cal-modal { background:#fff; border-radius:12px; box-shadow:0 4px 24px rgba(0,0,0,0.15); max-height:80vh; overflow-y:auto; padding:20px; }
     .cal-modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
@@ -2847,7 +2881,7 @@ function showRedInvoiceDetail() {
         <div class="nav-group-label">扩展</div>
         <div class="nav-menu">
             <div class="nav-item" onclick="switchModule('插件',this)" data-module="插件"><span class="nav-icon">&#x1F527;</span><span class="nav-label">能力中心</span></div>
-            <div class="nav-item"><span class="nav-icon">&#x1F916;</span><span class="nav-label">智能体管理</span></div>
+            <div class="nav-item" onclick="switchModule('智能体',this)" data-module="智能体"><span class="nav-icon">&#x1F916;</span><span class="nav-label">智能体管理</span></div>
             <div class="nav-item"><span class="nav-icon">&#x1F4DA;</span><span class="nav-label">知识库</span></div>
         </div>
         <div class="nav-divider"></div>
@@ -2987,6 +3021,13 @@ function showRedInvoiceDetail() {
             <div class="plugin-empty">📦 能力市场即将上线，敬请期待</div>
         </div>
     </div>
+    <div id="view-智能体" class="module-view" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <h2 style="font-size:16px;margin:0;font-weight:700;">🤖 智能体管理中心</h2>
+            <span class="agent-btn primary" onclick="showAgentCreateModal()">+ 创建智能体</span>
+        </div>
+        <div class="agent-grid" id="agentGrid"></div>
+    </div>
     </div>
     <div class="right-panel collapsed" id="rightPanel">
     <div class="chat-toolbar">
@@ -2995,12 +3036,7 @@ function showRedInvoiceDetail() {
                 <div class="agent-selector" id="agentSelector" onclick="toggleDropdown('agentDropdown')">
                     🤖 税务助手 <span class="dropdown-arrow">▼</span>
                 </div>
-                <div class="dropdown-menu" id="agentDropdown" style="display:none;">
-                    <div class="dropdown-item active" onclick="selectAgent(this, '&#x1F916;', '税务助手')">🤖 税务助手</div>
-                    <div class="dropdown-item" onclick="selectAgent(this, '&#x1F50D;', '合规审计')">🔍 合规审计</div>
-                    <div class="dropdown-item" onclick="selectAgent(this, '&#x1F4CB;', '申报专员')">📋 申报专员</div>
-                    <div class="dropdown-item" onclick="selectAgent(this, '&#x1F4CA;', '数据分析')">📊 数据分析</div>
-                </div>
+                <div class="dropdown-menu" id="agentDropdown" style="display:none;"></div>
             </div>
             <div class="selector-wrap">
                 <div class="model-selector" id="modelSelector" onclick="toggleDropdown('modelDropdown')">
@@ -3199,6 +3235,66 @@ function addStep() {
     steps.appendChild(div);
 }
 
+// ===== Agent Management Data & Functions =====
+var AGENT_DATA = [
+    { id:'agent-1', avatar:'🤖', name:'税务合规助手', status:'在线', statusColor:'#52c41a', style:'严谨专业', desc:'专注税务合规检查，以数据说话，结论有依据。擅长发票合规、供应商风险评估。', tasks:'3任务', skills:'2Skill', mcps:'1MCP', kb:'1知识库', role:'你是一名税务合规专家，专注于餐饮行业财税管理...', model:'Claude 4', temp:'0.3' },
+    { id:'agent-2', avatar:'📋', name:'申报专员', status:'在线', statusColor:'#52c41a', style:'简洁高效', desc:'直接给结论和行动建议，适合日常税务查询和快速诊断。', tasks:'1任务', skills:'1Skill', mcps:'0MCP', kb:'0知识库', role:'你是一名申报专员，擅长月度申报和税务计算...', model:'Claude 4', temp:'0.5' },
+    { id:'agent-3', avatar:'🔍', name:'风险分析师', status:'暂停', statusColor:'#faad14', style:'数据分析', desc:'侧重数据趋势和对比，擅长税务分析和报表解读。', tasks:'0任务', skills:'2Skill', mcps:'0MCP', kb:'1知识库', role:'你是一名风险分析师，擅长识别税务风险...', model:'GPT-4o', temp:'0.4' },
+];
+
+function renderAgentModule() {
+    var html = '';
+    AGENT_DATA.forEach(function(a) {
+        html += '<div class="agent-card" onclick="showAgentEditModal(\'' + a.id + '\')">' +
+            '<div class="ac-header">' +
+                '<div class="ac-header-left"><div class="ac-avatar" style="background:' + a.statusColor + '15;">' + a.avatar + '</div><div><div class="ac-name">' + a.name + '</div><div class="ac-style">' + a.style + '</div></div></div>' +
+                '<span class="ac-status" style="background:' + a.statusColor + '20;color:' + a.statusColor + ';">' + (a.status === '在线' ? '🟢 ' : '⏸️ ') + a.status + '</span>' +
+            '</div>' +
+            '<div class="ac-body">' + a.desc + '</div>' +
+            '<div class="ac-footer"><span>📋 ' + a.tasks + '</span><span>🔧 ' + a.skills + '</span><span>🔌 ' + a.mcps + '</span><span>📚 ' + a.kb + '</span></div>' +
+            '<div class="ac-actions"><span class="ac-action-btn" onclick="event.stopPropagation();showAgentEditModal(\'' + a.id + '\')">📝 编辑</span><span class="ac-action-btn" onclick="event.stopPropagation();deleteAgent(\'' + a.id + '\')">🗑 删除</span></div>' +
+        '</div>';
+    });
+    document.getElementById('agentGrid').innerHTML = html || '<div class="agent-empty">🤖 暂无智能体，点击上方按钮创建</div>';
+}
+function showAgentCreateModal() {
+    showAgentModal('创建智能体', null);
+}
+function showAgentEditModal(id) {
+    var agent = AGENT_DATA.find(function(a) { return a.id === id; });
+    if (!agent) return;
+    showAgentModal('编辑智能体', agent);
+}
+function showAgentModal(title, agent) {
+    var n = agent || { name:'', role:'你是一名税务合规专家，专注于餐饮行业财税管理...', style:'严谨专业', tasks:'✅ 月度申报复核,✅ 进项认证SOP', skills:'✅ 发票合规检查,⬜ 供应商评估', mcps:'✅ 乐企直连,⬜ 金蝶ERP', kb:'✅ 财税法规库', model:'Claude 4', temp:'0.3' };
+    var styles = ['严谨专业','简洁高效','数据分析','教育引导','自定义'];
+    var styleOpts = styles.map(function(s) { return '<option' + (s === n.style ? ' selected' : '') + '>' + s + '</option>'; }).join('');
+    var overlay = document.createElement('div');
+    overlay.className = 'agent-modal-overlay';
+    overlay.id = 'agentModalOverlay';
+    overlay.onclick = function(e) { if (e.target === this) this.remove(); };
+    overlay.innerHTML = '<div class="agent-modal"><h3>' + title + '</h3>' +
+        '<label>🤖 智能体名称</label><input type="text" id="agName" value="' + n.name + '" placeholder="如：税务合规助手">' +
+        '<label>角色设定</label><textarea id="agRole" placeholder="你是一名...">' + n.role + '</textarea>' +
+        '<label>回复风格</label><select id="agStyle">' + styleOpts + '</select>' +
+        '<div class="ag-section"><div class="ag-section-title">📋 绑定任务</div><div class="ag-tags"><span class="ag-tag selected">月度申报复核</span><span class="ag-tag selected">进项认证SOP</span><span class="ag-tag">季度合规检查</span></div></div>' +
+        '<div class="ag-section"><div class="ag-section-title">🔧 绑定Skill</div><div class="ag-tags"><span class="ag-tag selected">发票合规检查</span><span class="ag-tag selected">供应商评估</span><span class="ag-tag">税负分析</span></div></div>' +
+        '<div class="ag-section"><div class="ag-section-title">🔌 绑定MCP</div><div class="ag-tags"><span class="ag-tag selected">乐企直连</span><span class="ag-tag">金蝶ERP</span><span class="ag-tag">银行流水</span></div></div>' +
+        '<div class="ag-section"><div class="ag-section-title">📚 绑定知识库</div><div class="ag-tags"><span class="ag-tag selected">财税法规库</span><span class="ag-tag selected">企业内部制度</span></div></div>' +
+        '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;"><span class="agent-btn" onclick="closeAgentModal()">取消</span><span class="agent-btn primary" onclick="closeAgentModal()">💾 保存</span></div>' +
+    '</div>';
+    document.body.appendChild(overlay);
+    // Toggle tag selection
+    overlay.querySelectorAll('.ag-tag').forEach(function(t) { t.onclick = function(e) { e.stopPropagation(); this.classList.toggle('selected'); }; });
+}
+function closeAgentModal() { var el = document.getElementById('agentModalOverlay'); if (el) el.remove(); }
+function deleteAgent(id) {
+    if (!confirm('确认删除该智能体？')) return;
+    AGENT_DATA = AGENT_DATA.filter(function(a) { return a.id !== id; });
+    renderAgentModule();
+}
+renderAgentDropdown();
+
 function switchModule(module, navEl) {
     document.querySelectorAll('.module-view').forEach(function(v) { v.style.display = 'none'; });
     _currentModule = module;
@@ -3219,6 +3315,7 @@ function switchModule(module, navEl) {
     if (module === '申报') renderDeclarationModule();
     if (module === '风险') renderRiskModule();
     if (module === '插件') renderPluginModule();
+    if (module === '智能体') renderAgentModule();
 }
 
 // ===== P0: Toggle Right Panel =====
@@ -3250,10 +3347,26 @@ document.addEventListener('click', function(e) {
 });
 
 // ===== P0: Agent Select =====
+function renderAgentDropdown() {
+    var dropdown = document.getElementById('agentDropdown');
+    if (!dropdown) return;
+    var html = '';
+    AGENT_DATA.forEach(function(a, i) {
+        var cls = i === 0 ? 'dropdown-item active' : 'dropdown-item';
+        html += '<div class="' + cls + '" onclick="selectAgent(this,\'' + a.avatar + '\',\'' + a.name + '\')">' + a.avatar + ' ' + a.name + '</div>';
+    });
+    html += '<div class="dropdown-item" onclick="openAgentManage()">⚙️ 管理智能体</div>';
+    dropdown.innerHTML = html;
+}
+function openAgentManage() {
+    var navItem = document.querySelector('[data-module="智能体"]');
+    if (navItem) switchModule('智能体', navItem);
+    document.getElementById('agentDropdown').style.display = 'none';
+}
 function selectAgent(el, icon, name) {
     document.querySelectorAll('#agentDropdown .dropdown-item').forEach(function(it) { it.classList.remove('active'); });
     el.classList.add('active');
-    document.getElementById('agentSelector').innerHTML = icon + ' ' + name + ' <span class="dropdown-arrow">&#x25BC;</span>';
+    document.getElementById('agentSelector').innerHTML = icon + ' ' + name + ' <span class="dropdown-arrow">▼</span>';
     document.getElementById('agentDropdown').style.display = 'none';
 }
 
