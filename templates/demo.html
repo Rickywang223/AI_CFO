@@ -313,17 +313,29 @@ function renderInvoiceModule() {
     renderSuggestions();
 }
 
-// ===== 1. \u4eca\u65e5\u5f85\u529e\u4e2d\u5fc3 =====
+// ===== 1. 今日待办中心（v2优化版） =====
 function renderTodayTasks() {
     var data = TODAY_TASKS;
     var o = INVOICE_OVERVIEW;
+    // Load completed from localStorage
+    var completed = JSON.parse(localStorage.getItem('invTodayCompleted') || '[]');
+    var completedHtml = '';
+    if (completed.length > 0) {
+        completed.forEach(function(t) {
+            completedHtml += '<div class="inv-task-item" style="opacity:0.6;">' +
+                '<div class="ti-left"><span class="ti-bullet" style="background:#52c41a;"></span><div><div class="ti-title">' + t + '</div></div></div>' +
+                '<span class="ai-btn" style="background:#f6ffed;color:#52c41a;font-size:10px;" onclick=\'undoInvTask("' + t + '")\'>撤销</span></div>';
+        });
+    } else {
+        completedHtml = '<div style="padding:4px 0;font-size:10px;color:#bfbfbf;text-align:center;">暂无已完成事项</div>';
+    }
     var html =
         '<div class="inv-tasks-header">' +
-            '<div class="th-title">🎯 \u4eca\u65e5\u5f85\u529e\u4e2d\u5fc3</div>' +
-            '<span class="th-deadline">\u23f0 \u8ddd ' + o.deadlineDays + '\u670815\u65e5\u7533\u62a5\u622a\u6b62\u8fd8\u6709 <strong>' + o.deadlineDays + '</strong> \u5929</span>' +
+            '<div class="th-title">🎯 今日待办中心</div>' +
+            '<span class="th-deadline">⏰ 距 ' + o.deadlineDays + '月15日申报截止还有 <strong>' + o.deadlineDays + '</strong> 天</span>' +
         '</div>' +
         '<div class="inv-task-group">' +
-            '<div class="inv-task-group-title" style="color:#f5222d;">🔴 \u7d27\u6025\u4efb\u52a1 \u00b7 ' + data.emergency.length + ' \u9879</div>';
+            '<div class="inv-task-group-title" style="color:#f5222d;">🔴 紧急任务 · ' + data.emergency.length + ' 项</div>';
     data.emergency.forEach(function(t) {
         html += '<div class="inv-task-item">' +
             '<div class="ti-left">' +
@@ -334,16 +346,17 @@ function renderTodayTasks() {
                 '</div>' +
             '</div>' +
             '<div class="ti-actions">' +
-                (t.actions.indexOf('certify_one_click') >= 0 ? '<span class="sug-btn primary" onclick="batchCertifyHighRisk()">\u26a1 \u4e00\u952e\u8ba4\u8bc1</span>' : '') +
-                (t.actions.indexOf('drill_down') >= 0 ? '<span class="sug-btn default" onclick=\'showRegionInvoiceDetail("huazhong")\'>📍 \u4e0b\u94bb\u67e5\u770b</span>' : '') +
-                (t.actions.indexOf('send_urge') >= 0 ? '<span class="sug-btn default" onclick=\'executeSuggestion("send\u7763\u529e\u901a\u77e5")\'>📧 \u53d1\u7763\u529e</span>' : '') +
-                (t.actions.indexOf('view_detail') >= 0 ? '<span class="sug-btn default" onclick=\'executeSuggestion("\u67e5\u770b\u8865\u8ba4\u8bc1\u6e05\u5355")\'>\u67e5\u770b</span>' : '') +
+                (t.actions.indexOf('certify_one_click') >= 0 ? '<span class="sug-btn primary" onclick="batchCertifyHighRisk()">⚡ 一键认证</span>' : '') +
+                (t.actions.indexOf('drill_down') >= 0 ? '<span class="sug-btn default" onclick=\'showRegionInvoiceDetail("huazhong")\'>📍 下钻查看</span>' : '') +
+                (t.actions.indexOf('send_urge') >= 0 ? '<span class="sug-btn default" onclick=\'executeSuggestion("send督办通知")\'>📧 发督办</span>' : '') +
+                (t.actions.indexOf('view_detail') >= 0 ? '<span class="sug-btn default" onclick=\'executeSuggestion("查看补认证清单")\'>查看</span>' : '') +
+                '<span class="sug-btn default" onclick=\'completeInvTask("' + t.title + '")\'>✅ 完成</span>' +
             '</div>' +
         '</div>';
     });
     html += '</div>' +
         '<div class="inv-task-group">' +
-            '<div class="inv-task-group-title" style="color:#faad14;">🟠 \u4eca\u65e5\u5f85\u529e \u00b7 ' + data.todo.length + ' \u9879</div>';
+            '<div class="inv-task-group-title" style="color:#faad14;">🟠 今日待办 · ' + data.todo.length + ' 项</div>';
     data.todo.forEach(function(t) {
         html += '<div class="inv-task-item">' +
             '<div class="ti-left">' +
@@ -354,21 +367,34 @@ function renderTodayTasks() {
                 '</div>' +
             '</div>' +
             '<div class="ti-actions">' +
-                (t.actions.indexOf('view_detail') >= 0 ? '<span class="sug-btn default" onclick=\'executeSuggestion("\u67e5\u770b\u8865\u8ba4\u8bc1\u6e05\u5355")\'>\u67e5\u770b</span>' : '') +
-                (t.actions.indexOf('send_rectification') >= 0 ? '<span class="sug-btn default" onclick=\'executeSuggestion("\u53d1\u9001\u6574\u6539\u901a\u77e5")\'>📧 \u53d1\u6574\u6539\u901a\u77e5</span>' : '') +
-                (t.actions.indexOf('export') >= 0 ? '<span class="sug-btn default" onclick="exportCertifyList()">📤 \u5bfc\u51fa</span>' : '') +
+                (t.actions.indexOf('view_detail') >= 0 ? '<span class="sug-btn default" onclick=\'executeSuggestion("查看补认证清单")\'>查看</span>' : '') +
+                (t.actions.indexOf('send_rectification') >= 0 ? '<span class="sug-btn default" onclick=\'executeSuggestion("发送整改通知")\'>📧 发整改通知</span>' : '') +
+                (t.actions.indexOf('export') >= 0 ? '<span class="sug-btn default" onclick="exportCertifyList()">📤 导出</span>' : '') +
+                '<span class="sug-btn default" onclick=\'completeInvTask("' + t.title + '")\'>✅ 完成</span>' +
             '</div>' +
         '</div>';
     });
     html += '</div>' +
         '<div class="inv-task-group">' +
-            '<div class="inv-task-group-title" style="color:#52c41a;">\u2705 \u5df2\u5b8c\u6210 <span style="font-weight:400;color:#bfbfbf;font-size:10px;">\uff08\u70b9\u51fb\u5c55\u5f00\uff09</span></div>' +
-            '<div style="padding:4px 0;font-size:10px;color:#bfbfbf;text-align:center;">\u6682\u65e0\u5df2\u5b8c\u6210\u4e8b\u9879</div>' +
+            '<div class="inv-task-group-title" style="color:#52c41a;">✅ 已完成 <span style="font-weight:400;color:#bfbfbf;font-size:10px;">（' + completed.length + '项）</span></div>' +
+            completedHtml +
         '</div>';
     document.getElementById('todayTasksContainer').innerHTML = html;
 }
+function completeInvTask(title) {
+    var completed = JSON.parse(localStorage.getItem('invTodayCompleted') || '[]');
+    if (completed.indexOf(title) < 0) completed.unshift(title);
+    localStorage.setItem('invTodayCompleted', JSON.stringify(completed));
+    renderTodayTasks();
+}
+function undoInvTask(title) {
+    var completed = JSON.parse(localStorage.getItem('invTodayCompleted') || '[]');
+    completed = completed.filter(function(t) { return t !== title; });
+    localStorage.setItem('invTodayCompleted', JSON.stringify(completed));
+    renderTodayTasks();
+}
 
-// ===== 2. \u96c6\u56e2\u5065\u5eb7\u4e00\u77a5 =====
+// ===== 2. 集团健康一瞥（v2优化版） =====
 function renderHealthOverview() {
     var o = INVOICE_OVERVIEW;
     var oo = URGENCY_RANKING;
@@ -379,32 +405,42 @@ function renderHealthOverview() {
     var healthScore = Math.round(certScore + lossScore);
     var healthLevel = healthScore >= 80 ? 'A' : (healthScore >= 60 ? 'B' : (healthScore >= 40 ? 'C' : 'D'));
     var healthColor = healthLevel === 'A' ? '#52c41a' : (healthLevel === 'B' ? '#1890ff' : (healthLevel === 'C' ? '#faad14' : '#f5222d'));
-    var healthLabel = healthLevel === 'A' ? '\u4f18\u79c0' : (healthLevel === 'B' ? '\u826f\u597d' : (healthLevel === 'C' ? '\u5173\u6ce8' : '\u98ce\u9669'));
+    var healthLabel = healthLevel === 'A' ? '优秀' : (healthLevel === 'B' ? '良好' : (healthLevel === 'C' ? '关注' : '风险'));
     var deadlineColor = o.deadlineDays < 7 ? '#f5222d' : (o.deadlineDays < 15 ? '#faad14' : '#52c41a');
+    var certColor = o.certRate < 50 ? '#f5222d' : (o.certRate < 70 ? '#faad14' : '#52c41a');
+    var lossColor = o.expiredLossTotal > 1000000 ? '#f5222d' : (o.expiredLossTotal > 500000 ? '#faad14' : '#52c41a');
+    // Trends
+    var deadlineTrend = o.deadlineDays < 7 ? '🔴' : (o.deadlineDays < 15 ? '🟡 倒计时中' : '🟢');
+    var certTrend = o.certRate > o.avgCertRate ? '↑ 高于均值' : '↓ 低于均值';
+    var lossTrend = o.expiredLossTotal > o.lastMonthLoss ? '↑ 较上月+¥' + Math.round((o.expiredLossTotal - o.lastMonthLoss) / 10000) + '万' : '↓ 较上月-¥' + Math.round((o.lastMonthLoss - o.expiredLossTotal) / 10000) + '万';
     var html =
         '<div class="inv-health-card" style="border-left:3px solid ' + deadlineColor + ';">' +
             '<div class="hc-icon">📅</div>' +
-            '<div class="hc-label">\u8ba4\u8bc1\u5012\u8ba1\u65f6</div>' +
-            '<div class="hc-value" style="color:' + deadlineColor + ';">' + o.deadlineDays + ' \u5929</div>' +
-            '<div class="hc-sub">\u8ddd7\u670815\u65e5\u7533\u62a5\u622a\u6b62</div>' +
+            '<div class="hc-label">认证倒计时</div>' +
+            '<div class="hc-value" style="color:' + deadlineColor + ';">' + o.deadlineDays + ' 天</div>' +
+            '<div class="hc-sub">距7月15日申报截止</div>' +
+            '<div class="hc-trend" style="color:' + deadlineColor + ';">今日需认证 ' + o.dailyRateNeeded.toLocaleString() + ' 张</div>' +
         '</div>' +
-        '<div class="inv-health-card" style="border-left:3px solid ' + (o.certRate < 50 ? '#f5222d' : (o.certRate < 70 ? '#faad14' : '#52c41a')) + ';">' +
+        '<div class="inv-health-card" style="border-left:3px solid ' + certColor + ';">' +
             '<div class="hc-icon">📊</div>' +
-            '<div class="hc-label">\u8ba4\u8bc1\u8fdb\u5ea6</div>' +
+            '<div class="hc-label">认证进度</div>' +
             '<div class="hc-value" style="font-size:20px;color:#333;">' + o.certRate + '%</div>' +
-            '<div class="hc-sub">\u5df2\u8ba4\u8bc1 ' + o.certifiedCount.toLocaleString() + ' / ' + o.totalCount.toLocaleString() + '</div>' +
+            '<div class="hc-sub">已认证 ' + o.certifiedCount.toLocaleString() + ' / ' + o.totalCount.toLocaleString() + '</div>' +
+            '<div class="hc-trend" style="color:' + certColor + ';">' + certTrend + '（集团均值' + o.avgCertRate + '%）</div>' +
         '</div>' +
-        '<div class="inv-health-card" style="border-left:3px solid ' + (o.expiredLossTotal > 1000000 ? '#f5222d' : (o.expiredLossTotal > 500000 ? '#faad14' : '#52c41a')) + ';">' +
+        '<div class="inv-health-card" style="border-left:3px solid ' + lossColor + ';">' +
             '<div class="hc-icon">💰</div>' +
-            '<div class="hc-label">\u8fc7\u671f\u635f\u5931</div>' +
-            '<div class="hc-value" style="color:#f5222d;font-size:20px;">\u00a5' + Math.round(o.expiredLossTotal / 10000) + '\u4e07</div>' +
-            '<div class="hc-sub">\u5982\u4e0d\u8865\u6551\u672c\u6708\u9884\u4f30\u635f\u5931</div>' +
+            '<div class="hc-label">过期损失</div>' +
+            '<div class="hc-value" style="color:' + lossColor + ';font-size:20px;">¥' + Math.round(o.expiredLossTotal / 10000) + '万</div>' +
+            '<div class="hc-sub">如不补救本月预估损失</div>' +
+            '<div class="hc-trend" style="color:' + lossColor + ';">' + lossTrend + '</div>' +
         '</div>' +
         '<div class="inv-health-card" style="border-left:3px solid ' + healthColor + ';">' +
             '<div class="hc-icon">🏆</div>' +
-            '<div class="hc-label">\u5065\u5eb7\u8bc4\u5206</div>' +
-            '<div class="hc-value" style="color:' + healthColor + ';">' + healthLevel + '\u7ea7</div>' +
-            '<div class="hc-sub">' + healthLabel + ' \u00b7 ' + healthScore + '\u5206</div>' +
+            '<div class="hc-label">健康评分</div>' +
+            '<div class="hc-value" style="color:' + healthColor + ';">' + healthLevel + '级</div>' +
+            '<div class="hc-sub">' + healthLabel + ' · ' + healthScore + '分</div>' +
+            '<div class="hc-trend" style="color:' + healthColor + ';">' + urgencyCount + '项待处理</div>' +
         '</div>';
     document.getElementById('healthOverview').innerHTML = html;
 }
@@ -2410,6 +2446,7 @@ function showRedInvoiceDetail() {
 .inv-health-card .hc-label { font-size:10px; color:#8c8c8c; margin-bottom:2px; }
 .inv-health-card .hc-value { font-size:22px; font-weight:700; color:#333; }
 .inv-health-card .hc-sub { font-size:10px; color:#bfbfbf; margin-top:2px; }
+.inv-health-card .hc-trend { font-size:9px; color:#8c8c8c; margin-top:2px; }
 
 /* ===== v2: Abnormal Companies ===== */
 .inv-abnormal-section { background:#fff; border:1px solid #e8e8ed; border-radius:10px; margin-bottom:14px; padding:14px 18px; }
