@@ -2850,33 +2850,49 @@ function showRedInvoiceDetail() {
     .agent-modal .ag-tag { font-size:10px; padding:4px 10px; border:1px solid #d9d9d9; border-radius:4px; cursor:pointer; transition:all 0.1s; background:#fff; color:#595959; user-select:none; }
     .agent-modal .ag-tag.selected { background:var(--primary); color:#fff; border-color:var(--primary); }
 
-    /* ===== Knowledge Base ===== */
-    .kb-section { background:#fff; border:1px solid var(--border); border-radius:8px; padding:16px; margin-bottom:14px; }
-    .kb-btn { font-size:11px; padding:6px 14px; border:1px solid #d9d9d9; border-radius:6px; cursor:pointer; transition:all 0.1s; background:#fff; color:#333; white-space:nowrap; }
+    /* ===== Knowledge Base（v2优化版） ===== */
+    .kb-section { background:#fff; border:1px solid #edf0f5; border-radius:10px; margin-bottom:12px; overflow:hidden; box-shadow:0 1px 2px rgba(0,0,0,0.02); }
+    .kb-section-inner { padding:14px 18px; }
+    .kb-btn { font-size:11px; padding:6px 14px; border:1px solid #d9d9d9; border-radius:6px; cursor:pointer; transition:all 0.1s; background:#fff; color:#595959; white-space:nowrap; font-family:inherit; line-height:1.5; }
     .kb-btn:hover { border-color:var(--primary); color:var(--primary); }
     .kb-btn.primary { background:var(--primary); color:#fff; border-color:var(--primary); }
     .kb-btn.primary:hover { background:#096dd9; }
-    .kb-upload-zone { border:2px dashed #d9d9d9; border-radius:10px; padding:30px; text-align:center; cursor:pointer; transition:all 0.15s; margin-bottom:14px; background:#fff; }
+    .kb-upload-zone { border:2px dashed #d9d9d9; border-radius:10px; padding:24px; text-align:center; cursor:pointer; transition:all 0.15s; margin-bottom:12px; background:#fff; }
     .kb-upload-zone:hover { border-color:var(--primary); background:#f0f5ff; }
     .kb-upload-zone.dragover { border-color:var(--primary); background:#e6f7ff; }
-    .kb-uz-icon { font-size:32px; margin-bottom:8px; }
+    .kb-uz-icon { font-size:28px; margin-bottom:6px; }
     .kb-uz-text { font-size:13px; color:#8c8c8c; }
-    .kb-uz-hint { font-size:10px; color:#bfbfbf; margin-top:4px; }
-    .kb-category { border:1px solid var(--border); border-radius:8px; margin-bottom:8px; background:#fff; overflow:hidden; }
+    .kb-uz-hint { font-size:11px; color:#bfbfbf; margin-top:4px; line-height:1.5; }
+    .kb-search { width:100%; padding:8px 12px 8px 30px; border:1px solid #d9d9d9; border-radius:6px; font-size:12px; outline:none; box-sizing:border-box; font-family:inherit; margin-bottom:10px; background:#fafafa; }
+    .kb-search:focus { border-color:var(--primary); background:#fff; }
+    .kb-search-wrap { position:relative; }
+    .kb-search-ico { position:absolute; left:8px; top:9px; font-size:12px; color:#bfbfbf; }
+    .kb-category { border:1px solid #edf0f5; border-radius:8px; margin-bottom:8px; background:#fff; overflow:hidden; }
     .kb-cat-header { display:flex; align-items:center; justify-content:space-between; padding:10px 14px; cursor:pointer; transition:background 0.1s; }
     .kb-cat-header:hover { background:#fafafa; }
-    .kb-cat-left { display:flex; align-items:center; gap:6px; font-size:12px; font-weight:600; color:#333; }
-    .kb-cat-right { display:flex; align-items:center; gap:8px; font-size:10px; color:#8c8c8c; }
+    .kb-cat-left { display:flex; align-items:center; gap:6px; font-size:13px; font-weight:600; color:#262626; }
+    .kb-cat-right { display:flex; align-items:center; gap:8px; font-size:11px; color:#8c8c8c; }
     .kb-cat-toggle { font-size:10px; color:#bfbfbf; }
-    .kb-cat-body { padding:0 14px 10px; }
-    .kb-file { display:flex; align-items:center; gap:8px; padding:6px 0; border-bottom:1px solid #f5f5f5; }
+    .kb-cat-body { padding:0 14px 8px; }
+    .kb-file { display:flex; align-items:center; gap:8px; padding:7px 6px; border-bottom:1px solid #f5f5f5; border-radius:4px; margin:0 -4px; transition:background 0.1s; }
+    .kb-file:hover { background:#fafafa; }
     .kb-file:last-child { border-bottom:none; }
-    .kb-file .kbfi-icon { font-size:14px; }
-    .kb-file .kbfi-body { flex:1; min-width:0; }
-    .kb-file .kbfi-name { font-size:11px; font-weight:500; color:#333; }
-    .kb-file .kbfi-meta { font-size:10px; color:#bfbfbf; }
-    .kb-file .kbfi-status { font-size:10px; padding:2px 8px; border-radius:4px; flex-shrink:0; }
+    .kb-file .kbfi-icon { font-size:14px; flex-shrink:0; }
+    .kb-file .kbfi-body { flex:1; min-width:0; cursor:pointer; }
+    .kb-file .kbfi-name { font-size:12px; font-weight:500; color:#262626; line-height:1.5; }
+    .kb-file .kbfi-meta { font-size:11px; color:#8c8c8c; }
+    .kb-file .kbfi-status { font-size:10px; padding:2px 8px; border-radius:4px; flex-shrink:0; line-height:1.5; }
     .kb-file .kbfi-time { font-size:10px; color:#bfbfbf; white-space:nowrap; }
+    .kb-file .kbfi-actions { display:none; gap:4px; flex-shrink:0; }
+    .kb-file:hover .kbfi-actions { display:flex; }
+    .kb-file .kbfi-action-btn { font-size:9px; padding:2px 6px; border-radius:3px; cursor:pointer; background:#fff; border:1px solid #d9d9d9; color:#595959; line-height:1.5; }
+    .kb-file .kbfi-action-btn:hover { border-color:var(--primary); color:var(--primary); }
+    .kb-file .kbfi-action-btn.danger { color:#f5222d; border-color:#ffccc7; }
+    .kb-file .kbfi-action-btn.danger:hover { background:#fff1f0; }
+    .kb-progress { width:100%; height:6px; background:#f0f0f0; border-radius:3px; margin:10px 0; overflow:hidden; }
+    .kb-progress-bar { height:100%; border-radius:3px; background:var(--primary); transition:width 0.4s; width:0%; }
+    .kb-progress-text { font-size:11px; color:#8c8c8c; text-align:center; margin:4px 0; line-height:1.5; }
+    .kb-agent-badge { display:inline-flex; align-items:center; gap:4px; font-size:10px; padding:2px 8px; border-radius:4px; background:#f0f5ff; color:var(--primary); line-height:1.5; }
     .cal-modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:1000; }
     .cal-modal { background:#fff; border-radius:12px; box-shadow:0 4px 24px rgba(0,0,0,0.15); max-height:80vh; overflow-y:auto; padding:20px; }
     .cal-modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
@@ -3153,11 +3169,20 @@ function showRedInvoiceDetail() {
             <input type="file" id="kbFileInput" style="display:none;" accept=".pdf,.docx,.xlsx,.txt,.csv" multiple onchange="handleFileSelect(this)">
         </div>
         <div class="kb-section">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-                <div style="font-size:13px;font-weight:600;color:#1a1a2e;">📁 知识库分类</div>
-                <span class="kb-btn" onclick="showNewCategoryModal()">+ 新建分类</span>
+            <div class="kb-section-inner">
+                <div class="kb-search-wrap">
+                    <span class="kb-search-ico">🔍</span>
+                    <input class="kb-search" id="kbSearchInput" placeholder="搜索文件名..." onkeyup="filterKBFiles(this.value)">
+                </div>
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+                    <div style="display:flex;align-items:center;gap:8px;">
+                        <span style="font-size:13px;font-weight:600;color:#262626;">📁 知识库分类</span>
+                        <span class="kb-agent-badge">🤖 税务合规助手 已绑定</span>
+                    </div>
+                    <span class="kb-btn" onclick="showNewCategoryModal()">+ 新建分类</span>
+                </div>
+                <div id="kbCategoryList"></div>
             </div>
-            <div id="kbCategoryList"></div>
         </div>
     </div>
     </div>
@@ -3427,43 +3452,61 @@ function deleteAgent(id) {
 }
 renderAgentDropdown();
 
-// ===== Knowledge Base Data & Functions =====
+// ===== Knowledge Base（v2增强版） =====
 var KB_CATEGORIES = [
-    { id:'cat-1', name:'财税法规库', icon:'📁', fileCount:12, expanded:true, files:[
+    { id:'cat-1', name:'财税法规库', icon:'📁', fileCount:12, expanded:true, agent:'税务合规助手', files:[
         { name:'增值税法2026版.pdf', icon:'📄', status:'✅ 已解析', statusColor:'#52c41a', time:'07-16' },
         { name:'企业所得税汇算清缴.docx', icon:'📄', status:'✅ 已解析', statusColor:'#52c41a', time:'07-15' },
         { name:'发票管理办法.pdf', icon:'📄', status:'✅ 已解析', statusColor:'#52c41a', time:'07-15' },
     ]},
-    { id:'cat-2', name:'企业内部制度', icon:'📁', fileCount:5, expanded:true, files:[
+    { id:'cat-2', name:'企业内部制度', icon:'📁', fileCount:5, expanded:true, agent:'申报专员', files:[
         { name:'公司报销制度2026.docx', icon:'📄', status:'✅ 已解析', statusColor:'#52c41a', time:'07-14' },
         { name:'供应商准入标准.pdf', icon:'📄', status:'✅ 已解析', statusColor:'#52c41a', time:'07-14' },
     ]},
-    { id:'cat-3', name:'行业标准', icon:'📁', fileCount:3, expanded:true, files:[
+    { id:'cat-3', name:'行业标准', icon:'📁', fileCount:3, expanded:true, agent:'风险分析师', files:[
         { name:'餐饮行业财税指引.pdf', icon:'📄', status:'⏳ 解析中', statusColor:'#faad14', time:'07-17' },
     ]},
 ];
+var KB_FILTER = '';
 function renderKBModule() {
     var html = '';
     KB_CATEGORIES.forEach(function(cat) {
         var fileHtml = '';
-        cat.files.forEach(function(f) {
+        var filteredFiles = cat.files.filter(function(f) {
+            return !KB_FILTER || f.name.toLowerCase().indexOf(KB_FILTER.toLowerCase()) >= 0;
+        });
+        if (KB_FILTER && filteredFiles.length === 0) return; // skip empty cat when searching
+        filteredFiles.forEach(function(f, fi) {
+            var meta = f.name.slice(-4) === '.pdf' ? 'PDF文档' : (f.name.slice(-5) === '.docx' ? 'Word文档' : (f.name.slice(-4) === 'xlsx' ? 'Excel文档' : '文档'));
             fileHtml += '<div class="kb-file">' +
                 '<span class="kbfi-icon">' + f.icon + '</span>' +
-                '<div class="kbfi-body"><div class="kbfi-name">' + f.name + '</div><div class="kbfi-meta">' + f.icon.slice(-1) === 'x' ? 'Word文档' : (f.name.slice(-3) === 'pdf' ? 'PDF文档' : '文档') + '</div></div>' +
+                '<div class="kbfi-body" onclick="previewKBFile(\'' + f.name + '\',\'' + cat.name + '\')" title="点击预览">' +
+                    '<div class="kbfi-name">' + f.name + '</div>' +
+                    '<div class="kbfi-meta">' + meta + '</div>' +
+                '</div>' +
                 '<span class="kbfi-status" style="background:' + f.statusColor + '20;color:' + f.statusColor + ';">' + f.status + '</span>' +
                 '<span class="kbfi-time">' + f.time + '</span>' +
+                '<span class="kbfi-actions">' +
+                    '<span class="kbfi-action-btn" onclick="previewKBFile(\'' + f.name + '\',\'' + cat.name + '\')">👁️ 预览</span>' +
+                    '<span class="kbfi-action-btn danger" onclick="deleteKBFile(\'' + cat.id + '\',' + fi + ')">🗑️</span>' +
+                '</span>' +
             '</div>';
         });
-        html += '<div class="kb-category">' +
-            '<div class="kb-cat-header" onclick="toggleKBCat(\'' + cat.id + '\')">' +
-                '<div class="kb-cat-left">' + cat.icon + ' ' + cat.name + '</div>' +
-                '<div class="kb-cat-right"><span>' + cat.fileCount + '个文件</span><span class="kb-cat-toggle" id="kbToggle-' + cat.id + '">' + (cat.expanded ? '▲' : '▼') + '</span></div>' +
-            '</div>' +
-            '<div class="kb-cat-body" id="kbBody-' + cat.id + '" style="display:' + (cat.expanded ? 'block' : 'none') + ';">' + fileHtml + '</div>' +
-        '</div>';
+        if (fileHtml) {
+            html += '<div class="kb-category">' +
+                '<div class="kb-cat-header" onclick="toggleKBCat(\'' + cat.id + '\')">' +
+                    '<div class="kb-cat-left"><span>' + cat.icon + ' ' + cat.name + '</span>' +
+                    (cat.agent ? '<span class="kb-agent-badge" style="font-size:9px;">🤖 ' + cat.agent + '</span>' : '') +
+                    '</div>' +
+                    '<div class="kb-cat-right"><span>' + filteredFiles.length + '/' + cat.fileCount + '个文件</span><span class="kb-cat-toggle" id="kbToggle-' + cat.id + '">' + (cat.expanded ? '▲' : '▼') + '</span></div>' +
+                '</div>' +
+                '<div class="kb-cat-body" id="kbBody-' + cat.id + '" style="display:' + (cat.expanded ? 'block' : 'none') + ';">' + fileHtml + '</div>' +
+            '</div>';
+        }
     });
-    document.getElementById('kbCategoryList').innerHTML = html || '<div style="font-size:12px;color:#bfbfbf;padding:30px;text-align:center;">📚 暂无知识库分类</div>';
+    document.getElementById('kbCategoryList').innerHTML = html || '<div style="font-size:12px;color:#bfbfbf;padding:30px;text-align:center;">🔍 未找到匹配文件</div>';
 }
+function filterKBFiles(val) { KB_FILTER = val; renderKBModule(); }
 function toggleKBCat(id) {
     var body = document.getElementById('kbBody-' + id);
     var toggle = document.getElementById('kbToggle-' + id);
@@ -3471,9 +3514,31 @@ function toggleKBCat(id) {
     body.style.display = body.style.display === 'none' ? 'block' : 'none';
     toggle.textContent = body.style.display === 'none' ? '▼' : '▲';
 }
-function triggerFileSelect() {
-    document.getElementById('kbFileInput').click();
+function deleteKBFile(catId, fileIdx) {
+    if (!confirm('确认删除该文件？')) return;
+    var cat = KB_CATEGORIES.find(function(c) { return c.id === catId; });
+    if (cat) { cat.files.splice(fileIdx, 1); cat.fileCount = cat.files.length; }
+    renderKBModule();
 }
+function previewKBFile(name, catName) {
+    var overlay = document.createElement('div');
+    overlay.className = 'plugin-modal-overlay';
+    overlay.onclick = function(e) { if (e.target === this) this.remove(); };
+    overlay.innerHTML = '<div class="plugin-modal" style="max-width:500px;"><h3>📄 ' + name + '</h3>' +
+        '<div style="font-size:11px;color:#8c8c8c;margin-bottom:12px;">知识库：' + catName + '</div>' +
+        '<div style="background:#f5f5f5;border-radius:6px;padding:20px;text-align:center;margin-bottom:12px;border:1px solid #e8e8e8;">' +
+            '<div style="font-size:40px;margin-bottom:8px;">📄</div>' +
+            '<div style="font-size:12px;color:#595959;">文档预览功能即将上线</div>' +
+            '<div style="font-size:10px;color:#bfbfbf;margin-top:4px;">' + name + ' · 共' + Math.floor(Math.random()*20+5) + '页</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:12px;">' +
+            '<span style="font-size:10px;padding:3px 8px;background:#f0f5ff;border-radius:4px;color:var(--primary);">已解析</span>' +
+            '<span style="font-size:10px;padding:3px 8px;background:#f6ffed;border-radius:4px;color:#52c41a;">可检索</span>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;justify-content:flex-end;"><span class="kb-btn primary" onclick="this.closest(\'.plugin-modal-overlay\').remove()">关闭</span></div></div>';
+    document.body.appendChild(overlay);
+}
+function triggerFileSelect() { document.getElementById('kbFileInput').click(); }
 function handleFileSelect(input) {
     if (!input.files || input.files.length === 0) return;
     var names = [];
@@ -3487,25 +3552,69 @@ function showUploadConfirm(names) {
     overlay.id = 'kbModalOverlay';
     overlay.onclick = function(e) { if (e.target === this) this.remove(); };
     var fileList = names.map(function(n) { return '<div>✅ ' + n + '</div>'; }).join('');
-    overlay.innerHTML = '<div class="plugin-modal"><h3>📤 上传文件</h3>' +
-        '<div style="font-size:11px;margin-bottom:10px;">已选文件：</div><div style="font-size:11px;color:#595959;margin-bottom:10px;">' + fileList + '</div>' +
-        '<label>目标知识库</label><select><option>财税法规库</option><option>企业内部制度</option><option>行业标准</option></select>' +
-        '<label>解析选项</label><div style="font-size:10px;color:#8c8c8c;margin-bottom:10px;"><span style="display:inline-block;margin-right:12px;">✅ 全文索引</span><span style="display:inline-block;margin-right:12px;">✅ 表格提取</span><span>⬜ 图片OCR</span></div>' +
-        '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;"><span class="kb-btn" onclick="closeKBModal()">取消</span><span class="kb-btn primary" onclick="closeKBModal()">📤 开始上传</span></div></div>';
+    overlay.innerHTML = '<div class="plugin-modal" style="max-width:440px;"><h3>📤 上传文件</h3>' +
+        '<div style="font-size:11px;margin-bottom:8px;">已选 <strong>' + names.length + '</strong> 个文件：</div>' +
+        '<div style="font-size:11px;color:#595959;margin-bottom:10px;max-height:100px;overflow-y:auto;">' + fileList + '</div>' +
+        '<label>目标知识库</label><select id="kbTargetSelect"><option>财税法规库</option><option>企业内部制度</option><option>行业标准</option></select>' +
+        '<label>解析选项</label>' +
+        '<div style="font-size:11px;color:#8c8c8c;margin-bottom:8px;display:flex;gap:12px;flex-wrap:wrap;">' +
+            '<label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" checked> 全文索引</label>' +
+            '<label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox" checked> 表格提取</label>' +
+            '<label style="display:flex;align-items:center;gap:4px;cursor:pointer;"><input type="checkbox"> 图片OCR</label>' +
+        '</div>' +
+        '<div id="kbProgressArea" style="display:none;"><div class="kb-progress"><div class="kb-progress-bar" id="kbProgressBar"></div></div><div class="kb-progress-text" id="kbProgressText">正在上传...</div></div>' +
+        '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px;" id="kbModalActions">' +
+            '<span class="kb-btn" onclick="closeKBModal()">取消</span>' +
+            '<span class="kb-btn primary" onclick="startKBUpload(' + names.length + ')">📤 开始上传</span>' +
+        '</div></div>';
     document.body.appendChild(overlay);
 }
 function closeKBModal() { var el = document.getElementById('kbModalOverlay'); if (el) el.remove(); }
 function showUploadModal() { triggerFileSelect(); }
+function startKBUpload(count) {
+    var bar = document.getElementById('kbProgressBar');
+    var text = document.getElementById('kbProgressText');
+    var area = document.getElementById('kbProgressArea');
+    var actions = document.getElementById('kbModalActions');
+    if (!bar || !text || !area || !actions) return;
+    area.style.display = 'block';
+    actions.style.display = 'none';
+    var progress = 0;
+    var interval = setInterval(function() {
+        progress += Math.floor(Math.random() * 15 + 5);
+        if (progress >= 100) {
+            progress = 100;
+            clearInterval(interval);
+            text.textContent = '✅ 上传完成！' + count + '个文件已添加到知识库';
+            bar.style.width = '100%';
+            setTimeout(function() {
+                closeKBModal();
+                renderKBModule();
+            }, 1200);
+        } else {
+            bar.style.width = progress + '%';
+            text.textContent = '⏳ 正在上传 ' + count + ' 个文件... ' + progress + '%';
+        }
+    }, 250);
+}
 function showNewCategoryModal() {
     var overlay = document.createElement('div');
     overlay.className = 'plugin-modal-overlay';
     overlay.id = 'kbModalOverlay';
     overlay.onclick = function(e) { if (e.target === this) this.remove(); };
     overlay.innerHTML = '<div class="plugin-modal"><h3>📁 新建知识库分类</h3>' +
-        '<label>分类名称</label><input type="text" placeholder="如：行业标准">' +
-        '<label>说明</label><textarea placeholder="可选：分类描述..."></textarea>' +
-        '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;"><span class="kb-btn" onclick="closeKBModal()">取消</span><span class="kb-btn primary" onclick="closeKBModal()">💾 创建</span></div></div>';
+        '<label>分类名称</label><input type="text" id="kbNewCatName" placeholder="如：行业标准">' +
+        '<label>说明</label><textarea id="kbNewCatDesc" placeholder="可选：分类描述..."></textarea>' +
+        '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;"><span class="kb-btn" onclick="closeKBModal()">取消</span><span class="kb-btn primary" onclick="createKBCategory()">💾 创建</span></div></div>';
     document.body.appendChild(overlay);
+}
+function createKBCategory() {
+    var name = document.getElementById('kbNewCatName');
+    if (!name || !name.value.trim()) { alert('请输入分类名称'); return; }
+    var id = 'cat-' + (KB_CATEGORIES.length + 1);
+    KB_CATEGORIES.push({ id:id, name:name.value.trim(), icon:'📁', fileCount:0, expanded:true, files:[] });
+    closeKBModal();
+    renderKBModule();
 }
 // Drag & drop support
 document.addEventListener('DOMContentLoaded', function() {
