@@ -330,6 +330,7 @@ function renderTodayTasks() {
         completedHtml = '<div style="padding:4px 0;font-size:10px;color:#bfbfbf;text-align:center;">暂无已完成事项</div>';
     }
     var html =
+        '<div class="inv-section">' +
         '<div class="inv-tasks-header">' +
             '<div class="th-title">🎯 今日待办中心</div>' +
             '<span class="th-deadline">⏰ 距 ' + o.deadlineDays + '月15日申报截止还有 <strong>' + o.deadlineDays + '</strong> 天</span>' +
@@ -378,7 +379,7 @@ function renderTodayTasks() {
         '<div class="inv-task-group">' +
             '<div class="inv-task-group-title" style="color:#52c41a;">✅ 已完成 <span style="font-weight:400;color:#bfbfbf;font-size:10px;">（' + completed.length + '项）</span></div>' +
             completedHtml +
-        '</div>';
+        '</div></div>';
     document.getElementById('todayTasksContainer').innerHTML = html;
 }
 function completeInvTask(title) {
@@ -413,35 +414,39 @@ function renderHealthOverview() {
     var deadlineTrend = o.deadlineDays < 7 ? '🔴' : (o.deadlineDays < 15 ? '🟡 倒计时中' : '🟢');
     var certTrend = o.certRate > o.avgCertRate ? '↑ 高于均值' : '↓ 低于均值';
     var lossTrend = o.expiredLossTotal > o.lastMonthLoss ? '↑ 较上月+¥' + Math.round((o.expiredLossTotal - o.lastMonthLoss) / 10000) + '万' : '↓ 较上月-¥' + Math.round((o.lastMonthLoss - o.expiredLossTotal) / 10000) + '万';
-    var html =
+    var html = '<div class="inv-section">' +
+        '<div class="inv-section-title">💡 集团健康一瞥</div>' +
+        '<div class="inv-health-row">' +
         '<div class="inv-health-card" style="border-left:3px solid ' + deadlineColor + ';">' +
             '<div class="hc-icon">📅</div>' +
             '<div class="hc-label">认证倒计时</div>' +
             '<div class="hc-value" style="color:' + deadlineColor + ';">' + o.deadlineDays + ' 天</div>' +
             '<div class="hc-sub">距7月15日申报截止</div>' +
-            '<div class="hc-trend" style="color:' + deadlineColor + ';">今日需认证 ' + o.dailyRateNeeded.toLocaleString() + ' 张</div>' +
+            '<div class="hc-trend" style="color:' + deadlineColor + ';background:' + deadlineColor + '15;">今日需认证 ' + o.dailyRateNeeded.toLocaleString() + ' 张</div>' +
         '</div>' +
         '<div class="inv-health-card" style="border-left:3px solid ' + certColor + ';">' +
             '<div class="hc-icon">📊</div>' +
             '<div class="hc-label">认证进度</div>' +
             '<div class="hc-value" style="font-size:20px;color:#333;">' + o.certRate + '%</div>' +
             '<div class="hc-sub">已认证 ' + o.certifiedCount.toLocaleString() + ' / ' + o.totalCount.toLocaleString() + '</div>' +
-            '<div class="hc-trend" style="color:' + certColor + ';">' + certTrend + '（集团均值' + o.avgCertRate + '%）</div>' +
+            '<div class="hc-bar"><div class="hc-bar-fill" style="width:' + o.certRate + '%;background:' + certColor + ';"></div></div>' +
+            '<div class="hc-trend" style="color:' + certColor + ';background:' + certColor + '15;">' + certTrend + '</div>' +
         '</div>' +
         '<div class="inv-health-card" style="border-left:3px solid ' + lossColor + ';">' +
             '<div class="hc-icon">💰</div>' +
             '<div class="hc-label">过期损失</div>' +
             '<div class="hc-value" style="color:' + lossColor + ';font-size:20px;">¥' + Math.round(o.expiredLossTotal / 10000) + '万</div>' +
             '<div class="hc-sub">如不补救本月预估损失</div>' +
-            '<div class="hc-trend" style="color:' + lossColor + ';">' + lossTrend + '</div>' +
+            '<div class="hc-trend" style="color:' + lossColor + ';background:' + lossColor + '15;">' + lossTrend + '</div>' +
         '</div>' +
         '<div class="inv-health-card" style="border-left:3px solid ' + healthColor + ';">' +
             '<div class="hc-icon">🏆</div>' +
             '<div class="hc-label">健康评分</div>' +
             '<div class="hc-value" style="color:' + healthColor + ';">' + healthLevel + '级</div>' +
             '<div class="hc-sub">' + healthLabel + ' · ' + healthScore + '分</div>' +
-            '<div class="hc-trend" style="color:' + healthColor + ';">' + urgencyCount + '项待处理</div>' +
-        '</div>';
+            '<div class="hc-trend" style="color:' + healthColor + ';background:' + healthColor + '15;">' + urgencyCount + '项待处理</div>' +
+        '</div>' +
+        '</div></div>';
     document.getElementById('healthOverview').innerHTML = html;
 }
 
@@ -1576,11 +1581,8 @@ function showRedInvoiceDetail() {
 
 </script>
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            background: #f5f6fa;
-            color: #1d1d1f;
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', sans-serif; color:#262626; background: #f5f6fa;
             height: 100vh; overflow: hidden;
         }
 
@@ -2439,61 +2441,107 @@ function showRedInvoiceDetail() {
 .inv-task-group.collapsed .inv-task-item { display:none; }
 .inv-task-group .collapse-toggle { font-size:10px; color:#8c8c8c; cursor:pointer; }
 
-/* ===== v2: Health Overview ===== */
-.inv-health-row { display:flex; gap:14px; margin-bottom:14px; }
-.inv-health-card { flex:1; background:#fff; border:1px solid #e8e8ed; border-radius:10px; padding:12px 14px; display:flex; flex-direction:column; }
-.inv-health-card .hc-icon { font-size:16px; margin-bottom:2px; }
-.inv-health-card .hc-label { font-size:10px; color:#8c8c8c; margin-bottom:2px; }
-.inv-health-card .hc-value { font-size:22px; font-weight:700; color:#333; }
-.inv-health-card .hc-sub { font-size:10px; color:#bfbfbf; margin-top:2px; }
-.inv-health-card .hc-trend { font-size:9px; color:#8c8c8c; margin-top:2px; }
+/* ===== 进项管理字体系统（统一规范） ===== */
+/* 类型层级: title(14/13) → body(12) → caption(11) → micro(10) → value(20) */
+.inv-tasks-header { display:flex; justify-content:space-between; align-items:center; padding:14px 18px; }
+.inv-tasks-header .th-title { font-size:14px; font-weight:600; color:#262626; letter-spacing:0.2px; }
+.inv-tasks-header .th-deadline { font-size:11px; color:#8c8c8c; padding:3px 10px; background:#fff7e6; border-radius:4px; line-height:1.5; }
+.inv-task-group { padding:0 18px; }
+.inv-task-group-title { font-size:12px; font-weight:600; padding:10px 0 6px 0; display:flex; align-items:center; gap:4px; border-bottom:1px solid #f0f0f0; color:#262626; }
+.inv-task-item { display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border-bottom:1px solid #f5f5f5; transition:background 0.1s; border-radius:4px; margin:0 -6px; }
+.inv-task-item:hover { background:#fafafa; }
+.inv-task-item .ti-left { display:flex; align-items:flex-start; gap:8px; flex:1; }
+.inv-task-item .ti-bullet { width:6px; height:6px; border-radius:50%; margin-top:5px; flex-shrink:0; }
+.inv-task-item .ti-title { font-size:12px; color:#262626; font-weight:500; line-height:1.5; }
+.inv-task-item .ti-desc { font-size:11px; color:#8c8c8c; line-height:1.4; margin-top:1px; }
+.inv-task-item .ti-actions { display:flex; gap:6px; flex-shrink:0; }
+.inv-task-group.collapsed .inv-task-item { display:none; }
 
-/* ===== v2: Abnormal Companies ===== */
-.inv-abnormal-section { background:#fff; border:1px solid #e8e8ed; border-radius:10px; margin-bottom:14px; padding:14px 18px; }
-.inv-abnormal-title { font-size:13px; font-weight:600; margin-bottom:10px; display:flex; align-items:center; gap:6px; }
-.inv-abnormal-grid { display:flex; gap:12px; }
-.inv-abnormal-col { flex:1; min-height:80px; border-radius:8px; padding:10px; }
-.inv-abnormal-col.high { background:#fff1f0; border:1px solid #ffccc7; }
+/* Health Overview */
+.inv-health-row { display:flex; gap:8px; margin-bottom:10px; }
+.inv-health-card { flex:1; background:#fff; border:1px solid #edf0f5; border-radius:8px; padding:10px 8px; display:flex; flex-direction:column; align-items:center; text-align:center; box-shadow:0 1px 2px rgba(0,0,0,0.02); transition:box-shadow 0.12s,transform 0.12s; }
+.inv-health-card:hover { box-shadow:0 3px 8px rgba(0,0,0,0.05); transform:translateY(-1px); }
+.inv-health-card .hc-icon { font-size:16px; margin-bottom:2px; line-height:1; }
+.inv-health-card .hc-label { font-size:11px; color:#8c8c8c; margin-bottom:2px; letter-spacing:0.3px; }
+.inv-health-card .hc-value { font-size:20px; font-weight:650; color:#262626; line-height:1.3; letter-spacing:-0.3px; }
+.inv-health-card .hc-sub { font-size:11px; color:#bfbfbf; line-height:1.4; }
+.inv-health-card .hc-trend { font-size:10px; color:#8c8c8c; margin-top:2px; padding:1px 6px; border-radius:3px; background:#f5f5f5; line-height:1.5; }
+.inv-health-card .hc-bar { width:100%; height:3px; background:#f0f0f0; border-radius:2px; margin-top:4px; overflow:hidden; }
+.inv-health-card .hc-bar-fill { height:100%; border-radius:2px; transition:width 0.3s; }
+
+/* Section统一容器 */
+.inv-section { background:#fff; border:1px solid #edf0f5; border-radius:10px; margin-bottom:12px; overflow:hidden; box-shadow:0 1px 2px rgba(0,0,0,0.02); }
+.inv-section-title { font-size:14px; font-weight:600; color:#262626; padding:14px 18px 0; letter-spacing:0.2px; }
+.inv-section-sub { font-size:11px; color:#8c8c8c; padding:0 18px 10px; line-height:1.5; }
+
+/* 异常公司清单 */
+.inv-abnormal-grid { display:flex; gap:10px; padding:0 18px 14px; }
+.inv-abnormal-col { flex:1; min-height:60px; border-radius:8px; padding:10px; }
+.inv-abnormal-col.high { background:#fff5f5; border:1px solid #ffd4d4; }
 .inv-abnormal-col.warn { background:#fffbe6; border:1px solid #ffe58f; }
 .inv-abnormal-col.normal { background:#f6ffed; border:1px solid #b7eb8f; }
-.inv-abnormal-col-title { font-size:11px; font-weight:600; margin-bottom:6px; display:flex; align-items:center; gap:4px; }
+.inv-abnormal-col-title { font-size:12px; font-weight:600; margin-bottom:6px; display:flex; align-items:center; gap:4px; }
 .inv-abnormal-item { padding:6px 8px; background:rgba(255,255,255,0.9); border-radius:6px; margin-bottom:4px; }
-.inv-abnormal-item .ai-name { font-size:11px; font-weight:500; color:#333; }
-.inv-abnormal-item .ai-stat { font-size:10px; color:#8c8c8c; }
+.inv-abnormal-item .ai-name { font-size:12px; font-weight:500; color:#262626; }
+.inv-abnormal-item .ai-stat { font-size:11px; color:#8c8c8c; }
 .inv-abnormal-item .ai-actions { display:flex; gap:4px; margin-top:3px; }
-.inv-abnormal-item .ai-btn { font-size:9px; padding:2px 8px; border-radius:3px; cursor:pointer; white-space:nowrap; }
+.inv-abnormal-item .ai-btn { font-size:10px; padding:2px 8px; border-radius:3px; cursor:pointer; background:#fff; border:1px solid #d9d9d9; white-space:nowrap; line-height:1.5; }
 
-/* ===== v2: Urgency Ranking ===== */
-.inv-urgency-section { background:#fff; border:1px solid #e8e8ed; border-radius:10px; margin-bottom:14px; padding:14px 18px; }
-.inv-urgency-title { font-size:13px; font-weight:600; margin-bottom:4px; display:flex; align-items:center; gap:6px; }
-.inv-urgency-sub { font-size:10px; color:#8c8c8c; margin-bottom:10px; }
-.inv-urgency-block { border-radius:8px; padding:10px; margin-bottom:8px; }
-.inv-urgency-block.priority { background:#fff1f0; border:1px solid #ffccc7; }
+/* 申报紧迫度 */
+.inv-urgency-block { border-radius:8px; padding:10px; margin:0 18px 8px; }
+.inv-urgency-block.priority { background:#fff5f5; border:1px solid #ffd4d4; }
 .inv-urgency-block.watch { background:#fffbe6; border:1px solid #ffe58f; }
 .inv-urgency-block.normal { background:#f6ffed; border:1px solid #b7eb8f; }
-.inv-urgency-block-title { font-size:11px; font-weight:600; margin-bottom:6px; display:flex; align-items:center; gap:4px; }
+.inv-urgency-block-title { font-size:12px; font-weight:600; margin-bottom:6px; display:flex; align-items:center; gap:4px; }
 .inv-urgency-item { padding:8px 10px; background:rgba(255,255,255,0.9); border-radius:6px; margin-bottom:6px; }
 .inv-urgency-item:last-child { margin-bottom:0; }
 .inv-urgency-item .ui-row1 { display:flex; justify-content:space-between; align-items:center; }
-.inv-urgency-item .ui-supplier { font-size:12px; font-weight:600; color:#333; }
-.inv-urgency-item .ui-amount { font-size:13px; font-weight:600; color:#f5222d; }
-.inv-urgency-item .ui-row2 { font-size:10px; color:#8c8c8c; margin-top:2px; }
-.inv-urgency-item .ui-row3 { font-size:10px; color:#595959; margin-top:2px; font-weight:500; }
+.inv-urgency-item .ui-supplier { font-size:13px; font-weight:600; color:#262626; }
+.inv-urgency-item .ui-amount { font-size:13px; font-weight:650; color:#f5222d; }
+.inv-urgency-item .ui-row2 { font-size:11px; color:#8c8c8c; margin-top:2px; line-height:1.4; }
+.inv-urgency-item .ui-row3 { font-size:11px; color:#595959; margin-top:2px; font-weight:500; line-height:1.4; }
 .inv-urgency-item .ui-actions { display:flex; gap:6px; margin-top:4px; }
-.inv-urgency-item .ui-score { display:inline-block; padding:1px 6px; border-radius:3px; font-size:9px; font-weight:600; }
+.inv-urgency-item .ui-score { display:inline-block; padding:1px 6px; border-radius:3px; font-size:10px; font-weight:600; line-height:1.5; }
 .inv-urgency-item .ui-score.high { background:#f5222d; color:#fff; }
 .inv-urgency-item .ui-score.mid { background:#faad14; color:#fff; }
 
-/* ===== v2: Supplier Risk Tracking ===== */
-.inv-supplier-section { background:#fff; border:1px solid #e8e8ed; border-radius:10px; margin-bottom:14px; padding:14px 18px; }
-.inv-supplier-title { font-size:13px; font-weight:600; margin-bottom:10px; display:flex; align-items:center; gap:6px; justify-content:space-between; }
+/* 供应商追踪 */
+.inv-supplier-title { font-size:14px; font-weight:600; color:#262626; padding:14px 18px 0; display:flex; align-items:center; gap:6px; justify-content:space-between; letter-spacing:0.2px; }
+.inv-supplier-items { padding:0 18px 14px; }
 .inv-supplier-item { display:flex; align-items:center; justify-content:space-between; padding:8px 10px; background:#fafafa; border-radius:6px; margin-bottom:6px; border-left:3px solid #8c8c8c; }
 .inv-supplier-item .si-left { display:flex; align-items:center; gap:10px; flex:1; }
-.inv-supplier-item .si-level { width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:700; flex-shrink:0; }
-.inv-supplier-item .si-name { font-size:12px; font-weight:500; color:#333; }
-.inv-supplier-item .si-stat { font-size:10px; color:#8c8c8c; }
+.inv-supplier-item .si-level { width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center; color:#fff; font-size:11px; font-weight:700; flex-shrink:0; }
+.inv-supplier-item .si-name { font-size:13px; font-weight:500; color:#262626; }
+.inv-supplier-item .si-stat { font-size:11px; color:#8c8c8c; line-height:1.4; }
 .inv-supplier-item .si-actions { display:flex; gap:4px; flex-shrink:0; }
-.inv-supplier-nav { font-size:10px; color:#1890ff; cursor:pointer; }
+.inv-supplier-nav { font-size:11px; color:var(--primary); cursor:pointer; padding:0 18px 14px; text-align:right; }
+
+/* 智能建议 & 按钮 */
+.inv-suggestion { display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border-radius:6px; margin-bottom:4px; background:#fafafa; gap:8px; }
+.inv-suggestion.p0 { background:#f0f5ff; }
+.inv-suggestion .sug-text { font-size:12px; color:#262626; line-height:1.5; }
+.inv-suggestion .sug-actions { display:flex; gap:4px; flex-shrink:0; }
+.sug-btn { font-size:11px; padding:4px 10px; border-radius:4px; cursor:pointer; white-space:nowrap; transition:all 0.1s; line-height:1.5; }
+.sug-btn.primary { background:var(--primary); color:#fff; border:none; }
+.sug-btn.primary:hover { background:#096dd9; }
+.sug-btn.default { background:#fff; border:1px solid #d9d9d9; color:#595959; }
+.sug-btn.default:hover { border-color:var(--primary); color:var(--primary); }
+.inv-health-card .hc-bar { width:100%; height:4px; background:#f0f0f0; border-radius:2px; margin-top:6px; overflow:hidden; }
+.inv-health-card .hc-bar-fill { height:100%; border-radius:2px; transition:width 0.3s; }
+
+/* ===== v2: Task Center（优化版） ===== */
+.inv-tasks-header { display:flex; justify-content:space-between; align-items:center; padding:14px 18px; }
+.inv-tasks-header .th-title { font-size:14px; font-weight:600; color:#1a1a2e; }
+.inv-tasks-header .th-deadline { font-size:10px; color:#8c8c8c; padding:3px 10px; background:#fff7e6; border-radius:4px; }
+.inv-task-group { padding:0 18px; }
+.inv-task-group-title { font-size:11px; font-weight:600; padding:10px 0 6px 0; display:flex; align-items:center; gap:4px; border-bottom:1px solid #f5f5f5; }
+.inv-task-item { display:flex; align-items:center; justify-content:space-between; padding:8px 10px; border-bottom:1px solid #f5f5f5; transition:background 0.1s; border-radius:4px; margin:0 -6px; }
+.inv-task-item:hover { background:#fafafa; }
+.inv-task-item .ti-left { display:flex; align-items:flex-start; gap:8px; flex:1; }
+.inv-task-item .ti-bullet { width:6px; height:6px; border-radius:50%; margin-top:6px; flex-shrink:0; }
+.inv-task-item .ti-title { font-size:12px; color:#262626; font-weight:500; }
+.inv-task-item .ti-desc { font-size:10px; color:#8c8c8c; margin-top:1px; }
+.inv-task-item .ti-actions { display:flex; gap:6px; flex-shrink:0; }
 
 /* ===== v2: Search Bar ===== */
 .inv-search-wrapper { position:relative; }
