@@ -2698,6 +2698,38 @@ function showRedInvoiceDetail() {
     .qi-icon { font-size:22px; line-height:1.2; }
     .qi-label { font-size:11px; font-weight:500; color:#333; }
     .qi-sub { font-size:9px; color:#bfbfbf; }
+
+    /* ===== Plugin Management ===== */
+    .plugin-tabs { display:flex; gap:0; border-bottom:1px solid #e8e8ed; }
+    .plugin-tab { font-size:12px; padding:8px 16px; cursor:pointer; color:#8c8c8c; border-bottom:2px solid transparent; transition:all 0.1s; }
+    .plugin-tab:hover { color:#333; }
+    .plugin-tab.active { color:var(--primary); border-bottom-color:var(--primary); font-weight:500; }
+    .plugin-search { flex:1; max-width:320px; padding:6px 12px; border:1px solid #d9d9d9; border-radius:6px; font-size:12px; outline:none; transition:border-color 0.12s; }
+    .plugin-search:focus { border-color:var(--primary); }
+    .plugin-list { display:flex; flex-direction:column; gap:6px; }
+    .plugin-card { display:flex; align-items:center; gap:10px; padding:12px 14px; border:1px solid var(--border); border-radius:8px; background:#fff; transition:all 0.1s; }
+    .plugin-card:hover { border-color:#d9d9d9; box-shadow:0 1px 4px rgba(0,0,0,0.04); }
+    .plugin-card .pc-icon { font-size:18px; flex-shrink:0; }
+    .plugin-card .pc-body { flex:1; min-width:0; }
+    .plugin-card .pc-title { font-size:12px; font-weight:600; color:#333; }
+    .plugin-card .pc-desc { font-size:10px; color:#8c8c8c; margin-top:1px; }
+    .plugin-card .pc-meta { font-size:10px; color:#bfbfbf; margin-top:1px; }
+    .plugin-card .pc-status { font-size:10px; padding:2px 8px; border-radius:4px; flex-shrink:0; }
+    .plugin-card .pc-actions { display:flex; gap:4px; flex-shrink:0; }
+    .plugin-card .pc-action { font-size:10px; padding:3px 8px; border:1px solid #d9d9d9; border-radius:4px; cursor:pointer; color:#8c8c8c; transition:all 0.1s; background:#fff; }
+    .plugin-card .pc-action:hover { border-color:var(--primary); color:var(--primary); }
+    .plugin-btn { font-size:11px; padding:6px 14px; border:1px solid #d9d9d9; border-radius:6px; cursor:pointer; transition:all 0.1s; background:#fff; color:#333; }
+    .plugin-btn:hover { border-color:var(--primary); color:var(--primary); }
+    .plugin-btn.primary { background:var(--primary); color:#fff; border-color:var(--primary); }
+    .plugin-btn.primary:hover { background:#096dd9; }
+    .plugin-empty { font-size:12px; color:#bfbfbf; padding:40px; text-align:center; }
+    .plugin-modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:1000; }
+    .plugin-modal { background:#fff; border-radius:12px; box-shadow:0 4px 24px rgba(0,0,0,0.15); max-height:80vh; overflow-y:auto; padding:20px; min-width:420px; }
+    .plugin-modal h3 { font-size:14px; font-weight:600; margin:0 0 14px; color:#1a1a2e; }
+    .plugin-modal label { font-size:11px; color:#595959; display:block; margin-bottom:4px; }
+    .plugin-modal input[type=text], .plugin-modal textarea, .plugin-modal select { width:100%; padding:6px 10px; border:1px solid #d9d9d9; border-radius:6px; font-size:12px; outline:none; box-sizing:border-box; margin-bottom:10px; }
+    .plugin-modal input:focus, .plugin-modal textarea:focus { border-color:var(--primary); }
+    .plugin-modal textarea { min-height:50px; resize:vertical; }
     .cal-modal-overlay { position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.45); display:flex; align-items:center; justify-content:center; z-index:1000; }
     .cal-modal { background:#fff; border-radius:12px; box-shadow:0 4px 24px rgba(0,0,0,0.15); max-height:80vh; overflow-y:auto; padding:20px; }
     .cal-modal-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
@@ -2814,7 +2846,7 @@ function showRedInvoiceDetail() {
         <div class="nav-divider"></div>
         <div class="nav-group-label">扩展</div>
         <div class="nav-menu">
-            <div class="nav-item"><span class="nav-icon">&#x1F527;</span><span class="nav-label">插件管理</span></div>
+            <div class="nav-item" onclick="switchModule('插件',this)" data-module="插件"><span class="nav-icon">&#x1F527;</span><span class="nav-label">能力中心</span></div>
             <div class="nav-item"><span class="nav-icon">&#x1F916;</span><span class="nav-label">智能体管理</span></div>
             <div class="nav-item"><span class="nav-icon">&#x1F4DA;</span><span class="nav-label">知识库</span></div>
         </div>
@@ -2930,6 +2962,31 @@ function showRedInvoiceDetail() {
     <div id="view-风险" class="module-view" style="display:none;">
         
     </div>
+    <div id="view-插件" class="module-view" style="display:none;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <h2 style="font-size:16px;margin:0;font-weight:700;">🔧 能力中心</h2>
+            <div style="display:flex;gap:8px;">
+                <span class="plugin-btn primary" onclick="showTaskModal()">+ 新建任务</span>
+                <span class="plugin-btn" onclick="showSkillModal()">+ 新建Skill</span>
+                <span class="plugin-btn" onclick="showMCPModal()">+ 新建连接</span>
+            </div>
+        </div>
+        <div class="plugin-tabs">
+            <span class="plugin-tab active" data-tab="tasks" onclick="switchPluginTab('tasks',this)">📋 任务</span>
+            <span class="plugin-tab" data-tab="skills" onclick="switchPluginTab('skills',this)">🔧 Skill</span>
+            <span class="plugin-tab" data-tab="mcps" onclick="switchPluginTab('mcps',this)">🔌 MCP连接</span>
+            <span class="plugin-tab" data-tab="market" onclick="switchPluginTab('market',this)">📦 市场</span>
+        </div>
+        <div style="margin:10px 0;display:flex;gap:8px;">
+            <input class="plugin-search" id="pluginSearch" placeholder="🔍 搜索任务或Skill..." onkeyup="filterPluginList(this.value)">
+        </div>
+        <div id="pluginTaskList" class="plugin-list"></div>
+        <div id="pluginSkillList" class="plugin-list" style="display:none;"></div>
+        <div id="pluginMCPList" class="plugin-list" style="display:none;"></div>
+        <div id="pluginMarketList" class="plugin-list" style="display:none;">
+            <div class="plugin-empty">📦 能力市场即将上线，敬请期待</div>
+        </div>
+    </div>
     </div>
     <div class="right-panel collapsed" id="rightPanel">
     <div class="chat-toolbar">
@@ -3024,6 +3081,124 @@ function loadHistory(name) {
 }
 renderDashboard();
 
+// ===== Plugin Management Data & Functions =====
+var PLUGIN_TASKS = [
+    { id:'task-1', icon:'📋', name:'月度申报复核流程', desc:'4步 · 最后执行：2026-07-15', status:'启用', statusColor:'#52c41a' },
+    { id:'task-2', icon:'📋', name:'进项认证SOP', desc:'3步 · 最后执行：2026-07-10', status:'启用', statusColor:'#52c41a' },
+    { id:'task-3', icon:'📋', name:'季度合规检查', desc:'5步 · 定时执行：每季度末', status:'暂停', statusColor:'#faad14' },
+    { id:'task-4', icon:'📋', name:'月结增值税计算', desc:'2步 · 最后执行：2026-06-30', status:'启用', statusColor:'#52c41a' },
+];
+var PLUGIN_SKILLS = [
+    { id:'sk-1', icon:'🔧', name:'发票合规检查技能', desc:'输入：发票数据 → 输出：合规报告', status:'启用', statusColor:'#52c41a' },
+    { id:'sk-2', icon:'🔧', name:'供应商风险评估技能', desc:'输入：供应商列表 → 输出：风险评分', status:'启用', statusColor:'#52c41a' },
+    { id:'sk-3', icon:'🔧', name:'税负分析技能', desc:'输入：财务数据 → 输出：税负报告', status:'暂停', statusColor:'#faad14' },
+];
+var PLUGIN_MCPS = [
+    { id:'mcp-1', icon:'🔌', name:'乐企直连', desc:'连接时间：2026-07-16 · 状态正常', status:'已连接', statusColor:'#52c41a' },
+    { id:'mcp-2', icon:'🔌', name:'金蝶ERP', desc:'最后同步：2026-07-10 · 需重新认证', status:'待验证', statusColor:'#faad14' },
+    { id:'mcp-3', icon:'🔌', name:'银行流水对接', desc:'错误：认证超时 · 请检查API Key', status:'连接失败', statusColor:'#f5222d' },
+    { id:'mcp-4', icon:'🔌', name:'美团/饿了么数据', desc:'数据同步：每日凌晨2:00自动', status:'已连接', statusColor:'#52c41a' },
+];
+
+function renderPluginModule() {
+    document.getElementById('pluginSearch').value = '';
+    renderPluginTab('tasks');
+}
+function renderPluginTab(tab) {
+    var data = tab === 'tasks' ? PLUGIN_TASKS : (tab === 'skills' ? PLUGIN_SKILLS : PLUGIN_MCPS);
+    var lists = { tasks:'pluginTaskList', skills:'pluginSkillList', mcps:'pluginMCPList', market:'pluginMarketList' };
+    Object.keys(lists).forEach(function(k) {
+        document.getElementById(lists[k]).style.display = k === tab ? '' : 'none';
+    });
+    if (tab === 'market') return;
+    var html = '';
+    data.forEach(function(item) {
+        html += '<div class="plugin-card">' +
+            '<span class="pc-icon">' + item.icon + '</span>' +
+            '<div class="pc-body"><div class="pc-title">' + item.name + '</div><div class="pc-desc">' + item.desc + '</div></div>' +
+            '<span class="pc-status" style="background:' + item.statusColor + '20;color:' + item.statusColor + ';">' + item.status + '</span>' +
+            '<div class="pc-actions"><span class="pc-action">📝 编辑</span><span class="pc-action">🗑 删除</span></div>' +
+        '</div>';
+    });
+    document.getElementById(lists[tab]).innerHTML = html;
+}
+function switchPluginTab(tab, el) {
+    document.querySelectorAll('.plugin-tab').forEach(function(t) { t.classList.remove('active'); });
+    if (el) el.classList.add('active');
+    var searchVal = document.getElementById('pluginSearch').value.toLowerCase();
+    if (searchVal) { filterPluginList(searchVal); return; }
+    renderPluginTab(tab);
+}
+function filterPluginList(val) {
+    var activeTab = document.querySelector('.plugin-tab.active');
+    var tab = activeTab ? activeTab.getAttribute('data-tab') : 'tasks';
+    if (tab === 'market') return;
+    var data = tab === 'tasks' ? PLUGIN_TASKS : (tab === 'skills' ? PLUGIN_SKILLS : PLUGIN_MCPS);
+    var listId = { tasks:'pluginTaskList', skills:'pluginSkillList', mcps:'pluginMCPList' }[tab];
+    var filtered = data.filter(function(item) { return item.name.indexOf(val) >= 0 || item.desc.indexOf(val) >= 0; });
+    var html = '';
+    if (filtered.length === 0) { html = '<div class="plugin-empty">🔍 未找到匹配项</div>'; }
+    else { filtered.forEach(function(item) {
+        html += '<div class="plugin-card">' +
+            '<span class="pc-icon">' + item.icon + '</span>' +
+            '<div class="pc-body"><div class="pc-title">' + item.name + '</div><div class="pc-desc">' + item.desc + '</div></div>' +
+            '<span class="pc-status" style="background:' + item.statusColor + '20;color:' + item.statusColor + ';">' + item.status + '</span>' +
+            '<div class="pc-actions"><span class="pc-action">📝 编辑</span><span class="pc-action">🗑 删除</span></div>' +
+        '</div>';
+    }); }
+    document.getElementById(listId).innerHTML = html;
+}
+function showTaskModal() {
+    showPluginModal('新建任务',
+        '<label>任务名称</label><input type="text" id="pmTaskName" placeholder="如：月度申报复核流程">' +
+        '<label>说明</label><textarea id="pmTaskDesc" placeholder="任务概述..."></textarea>' +
+        '<label>执行步骤</label>' +
+        '<div id="pmSteps"><div class="pm-step" style="display:flex;gap:6px;margin-bottom:6px;"><input type="text" placeholder="步骤名称" style="flex:2;"><input type="text" placeholder="选择Skill..." style="flex:3;"><span class="pc-action" onclick="this.parentElement.remove()">✕</span></div></div>' +
+        '<span class="plugin-btn" onclick="addStep()">+ 添加步骤</span>' +
+        '<label style="margin-top:10px;">触发方式</label><select><option>手动执行</option><option>定时执行</option><option>事件触发</option></select>' +
+        '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;"><span class="plugin-btn" onclick="closePluginModal()">取消</span><span class="plugin-btn primary" onclick="closePluginModal()">💾 保存</span></div>'
+    );
+}
+function showSkillModal() {
+    showPluginModal('新建Skill',
+        '<label>Skill名称</label><input type="text" placeholder="如：发票合规检查技能">' +
+        '<label>说明</label><textarea placeholder="技能描述..."></textarea>' +
+        '<label>分类</label><select><option>发票类</option><option>税务类</option><option>合规类</option><option>数据类</option></select>' +
+        '<label>输入参数</label><div style="font-size:10px;color:#8c8c8c;">参数1：发票数据 (JSON) · 参数2：规则ID (String)</div>' +
+        '<label>执行逻辑</label><select><option>使用AI自动执行</option><option>调用API执行</option></select>' +
+        '<label>输出格式</label><select><option>文本</option><option>JSON</option><option>表格</option></select>' +
+        '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;"><span class="plugin-btn" onclick="closePluginModal()">取消</span><span class="plugin-btn primary" onclick="closePluginModal()">💾 保存</span></div>'
+    );
+}
+function showMCPModal() {
+    showPluginModal('新建MCP连接',
+        '<label>连接名称</label><input type="text" placeholder="如：金蝶ERP">' +
+        '<label>连接类型</label><select><option>财务系统</option><option>业务系统</option><option>银行接口</option><option>第三方平台</option></select>' +
+        '<label>接口地址</label><input type="text" placeholder="https://api.example.com">' +
+        '<label>认证方式</label><select><option>API Key</option><option>OAuth 2.0</option><option>基本认证</option></select>' +
+        '<label>API Key</label><input type="text" placeholder="输入认证密钥">' +
+        '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;"><span class="plugin-btn" onclick="closePluginModal()">取消</span><span class="plugin-btn primary" onclick="closePluginModal()">💾 保存</span></div>'
+    );
+}
+function showPluginModal(title, body) {
+    var overlay = document.createElement('div');
+    overlay.className = 'plugin-modal-overlay';
+    overlay.id = 'pluginModalOverlay';
+    overlay.onclick = function(e) { if (e.target === this) this.remove(); };
+    overlay.innerHTML = '<div class="plugin-modal"><h3>' + title + '</h3>' + body + '</div>';
+    document.body.appendChild(overlay);
+}
+function closePluginModal() { var el = document.getElementById('pluginModalOverlay'); if (el) el.remove(); }
+function addStep() {
+    var steps = document.getElementById('pmSteps');
+    if (!steps) return;
+    var div = document.createElement('div');
+    div.className = 'pm-step';
+    div.style.cssText = 'display:flex;gap:6px;margin-bottom:6px;';
+    div.innerHTML = '<input type="text" placeholder="步骤名称" style="flex:2;"><input type="text" placeholder="选择Skill..." style="flex:3;"><span class="pc-action" onclick="this.parentElement.remove()">✕</span>';
+    steps.appendChild(div);
+}
+
 function switchModule(module, navEl) {
     document.querySelectorAll('.module-view').forEach(function(v) { v.style.display = 'none'; });
     _currentModule = module;
@@ -3043,6 +3218,7 @@ function switchModule(module, navEl) {
     if (module === '销项') renderSalesModule();
     if (module === '申报') renderDeclarationModule();
     if (module === '风险') renderRiskModule();
+    if (module === '插件') renderPluginModule();
 }
 
 // ===== P0: Toggle Right Panel =====
